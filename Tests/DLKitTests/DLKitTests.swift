@@ -12,6 +12,7 @@ final class DLKitTests: XCTestCase {
             XCTFail("Could not locate test image")
             return
         }
+        XCTAssertEqual(DLKit.selfImage, testImage, "Images equal")
         for (name, value) in testImage where value != nil {
             print(name.demangle ?? String(cString: name), value as Any)
         }

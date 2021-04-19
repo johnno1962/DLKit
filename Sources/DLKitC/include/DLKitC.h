@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#1 $
+//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#2 $
 //
 //  Provides state for a symbol table iterator.
 //
@@ -41,5 +41,7 @@ struct symbol_iterator {
 
 extern void init_symbol_iterator(const mach_header_t *header,
                                  struct symbol_iterator *state);
+
+extern void *self_caller();
 
 #import "fishhook.h"

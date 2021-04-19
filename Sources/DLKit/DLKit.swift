@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#3 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#4 $
 //
 
 import Foundation
@@ -24,6 +24,11 @@ public struct DLKit {
     public static var lastImage: ImageSymbols {
         return ImageSymbols(imageIndex: _dyld_image_count()-1)
     }
+    /// Image of code referencing this property
+    public static var selfImage: ImageSymbols {
+        return allImages[self_caller()!]!.image
+    }
+    /// Map of all loaded images
     public static var imageMap: [String: ImageSymbols] {
         return allImages.imageMap
     }
@@ -166,7 +171,8 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
         }
     }
     /// Inverse lookup returning image symbol name and wrapped image for an address.
-    public subscript (ptr: UnsafeMutableRawPointer) -> (SymbolName, ImageSymbols)? {
+    public subscript (ptr: UnsafeMutableRawPointer)
+        -> (name: SymbolName, image: ImageSymbols)? {
         var info = Dl_info()
         guard dladdr(ptr, &info) != 0, let imageNumber = imageNumbers.filter({
             info.dli_fname == $0.imageName ||
