@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#11 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#17 $
 //
 
 import Foundation
@@ -16,11 +16,11 @@ import DLKitC
 public struct DLKit {
     /// Pseudo image for all images loaded in the process.
     public static let allImages: ImageSymbols = AnyImage()
-    /// Pseudo image for images loaded in the process from the app bundle.
+    /// Pseudo image for images loaded from the app bundle.
     public static let appImages: ImageSymbols = AppImages()
     /// Main execuatble image.
     public static let mainImage: ImageSymbols = MainImage()
-    /// Last loaded image.
+    /// Last dynamically loaded image.
     public static var lastImage: ImageSymbols {
         return ImageSymbols(imageIndex: _dyld_image_count()-1)
     }
@@ -62,7 +62,7 @@ public typealias SymbolName = UnsafePointer<Int8>
 /// Extension for easy demangling of Swift symbols
 public extension SymbolName {
     /// return Swif tlanguage description of symbol
-    var demangle: String? {
+    var demangled: String? {
         if let demangledNamePtr = _stdlib_demangleImpl(
             self, mangledNameLength: UInt(strlen(self)),
             outputBuffer: nil, outputBufferSize: nil, flags: 0) /*??
@@ -80,7 +80,7 @@ public extension SymbolName {
 public struct ImageNumber: Equatable {
     /// Index into loaded images
     public let imageIndex: UInt32
-    /// Base address  of image (pointer to mach_header at beginning of file)
+    /// Base address of image (pointer to mach_header at beginning of file)
     public var imageHeader: UnsafePointer<mach_header_t> {
         return _dyld_get_image_header(imageIndex)
             .withMemoryRebound(to: mach_header_t.self, capacity: 1) {$0}
@@ -114,14 +114,14 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
 
     /// Wrapped load index of image
     public var imageNumber: ImageNumber
-    /// Lazilly mapped recovery of handle return by dlopen
+    /// Lazilly recovered handle returned by dlopen
     public var imageHandle: UnsafeMutableRawPointer?
 
     public init(imageIndex: UInt32) {
         self.imageNumber = ImageNumber(imageIndex: imageIndex)
     }
 
-    /// Array of image numbers covered - used for Pseudo images represenint more than one image
+    /// Array of image numbers covered - used for Pseudo images represening more than one image
     open var imageNumbers: [ImageNumber] {
         return [imageNumber]
     }
@@ -134,7 +134,7 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     /// Produce a map of images keyed by lastPathComponent of the imagePath
     public var imageMap: [String: ImageSymbols] {
         return Dictionary(uniqueKeysWithValues: imageList.map {
-            return ($0.imageNumber.imageKey, $0)
+            ($0.imageNumber.imageKey, $0)
         })
     }
     /// Loook up an individual symbol by name
@@ -184,7 +184,7 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
             }
         }
     }
-    /// Slightly hacky Array of Strings version
+    /// Slightly dubious Array of Strings version of subscript
     public subscript (names: [String]) -> [UnsafeMutableRawPointer?] {
         get { return self[names.map {$0.withCString {$0}}] }
         set (newValue) { self[names.map {$0.withCString {$0}}] = newValue }
@@ -193,22 +193,33 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     public subscript (ptr: UnsafeMutableRawPointer)
         -> (name: SymbolName, image: ImageSymbols)? {
         var info = Dl_info()
-        guard dladdr(ptr, &info) != 0, let imageNumber = imageNumbers.filter({
+        guard dladdr(ptr, &info) != 0,
+            let imageNumber = imageNumbers.first(where: {
             info.dli_fname == $0.imageName ||
             strcmp(info.dli_fname, $0.imageName) == 0
-        }).first else { return nil }
+        }) else { return nil }
         return (info.dli_sname, ImageSymbols(imageIndex: imageNumber.imageIndex))
     }
     /// Determine symbol associated with mangled name.
-    /// ("self" much contain definition of or reference to symbol)
+    /// ("self" must contain definition of or reference to symbol)
     /// - Parameter swift: Swift language version of symbol
     /// - Returns: Mangled version of String + value if there is one
     public func mangle(swift: String)
         -> (name: SymbolName, value: UnsafeMutableRawPointer?)? {
-        for (name, value, _) in self where name.demangle == swift {
+        for (name, value, _) in self where name.demangled == swift {
             return (name+1, value)
         }
         return nil
+    }
+    /// Swift symbols encode their type in as a suffix
+    /// - Parameter withSuffixes: Suffixes to search for
+    /// - Returns: Swift symbols with any of the suffixes
+    public func swiftSymbols(withSuffixes: [String]) -> [Element] {
+        self.filter { (name, value, entry) in
+            guard value != nil && strncmp(name, "_$s", 3) == 0 else { return false }
+            let symbol = String(cString: name)
+            return withSuffixes.first(where: { symbol.hasSuffix($0) }) != nil
+        }
     }
 }
 
@@ -243,7 +254,7 @@ extension ImageSymbols: Sequence {
     }
 }
 
-/// Psudo image representing all images
+/// Pseudo image representing all images
 class AnyImage: ImageSymbols {
     init() {
         super.init(imageIndex: ~0)
@@ -254,7 +265,7 @@ class AnyImage: ImageSymbols {
     }
 }
 
-/// Psudo image representing images in the app bundle
+/// Pseudo image representing images in the app bundle
 class AppImages: AnyImage {
     open override var imageNumbers: [ImageNumber] {
         let mainExecutable = Bundle.main.executablePath
@@ -271,17 +282,18 @@ class AppImages: AnyImage {
     }
 }
 
-/// Psudo image representing main executable image
-class MainImage: AnyImage {
-    override init() {
-        super.init()
-        imageNumber = imageNumbers[0]
-        imageHandle = DLKit.RTLD_MAIN_ONLY
-    }
-    open override var imageNumbers: [ImageNumber] {
+/// Pseudo image representing main executable image
+class MainImage: ImageSymbols {
+    init() {
+        super.init(imageIndex: ~0)
         let mainExecutable = Bundle.main.executablePath
-        return super.imageNumbers.filter {
+        if let mainImageNumber = DLKit.allImages.imageNumbers.first(where: {
             strcmp(mainExecutable, $0.imageName) == 0
+        }) {
+            imageNumber = mainImageNumber
+        } else {
+            NSLog("DLKit: Could not find main executable image")
         }
+        imageHandle = DLKit.RTLD_MAIN_ONLY
     }
 }

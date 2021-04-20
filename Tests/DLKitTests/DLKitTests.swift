@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Tests/DLKitTests/DLKitTests.swift#9 $
+//  $Id: //depot/DLKit/Tests/DLKitTests/DLKitTests.swift#10 $
 //
 
 import XCTest
@@ -20,23 +20,28 @@ final class DLKitTests: XCTestCase {
         // results.
         print(DLKit.mainImage)
         let mangledTestClassSymbol = "$s10DLKitTestsAACN"
+        let testClassSwift = "type metadata for DLKitTests.DLKitTests"
         guard let testImage = DLKit.imageMap["DLKitTests"] else {
             XCTFail("Could not locate test image")
             return
         }
-        guard let mangled = testImage.mangle(swift:
-            "type metadata for DLKitTests.DLKitTests")?.name,
+        guard let mangled = testImage.mangle(swift: testClassSwift)?.name,
             mangledTestClassSymbol == String(cString: mangled) else {
             XCTFail("Re-mangling test")
             return
         }
         XCTAssertEqual(DLKit.selfImage, testImage, "Images equal")
         for (name, value, _) in testImage where value != nil {
-            print(name.demangle ?? String(cString: name), value as Any)
+            print(name.demangled ?? String(cString: name), value as Any)
         }
         guard let pointer1 = testImage[[mangledTestClassSymbol]][0] else {
             XCTFail("Symbol lookup fails")
             return
+        }
+        guard testImage.swiftSymbols(withSuffixes: ["CN"])
+            .map({ $0.name.demangled }).contains(testClassSwift) else {
+                XCTFail("Symbol filter fails")
+                return
         }
         guard let pointer2 = DLKit.allImages[mangledTestClassSymbol] else {
             XCTFail("Global symbol lookup fails")
