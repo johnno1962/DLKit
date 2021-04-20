@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/DLKitC.c#6 $
+//  $Id: //depot/DLKit/Sources/DLKitC/DLKitC.c#7 $
 //
 //  Provides state for a symbol table iterator.
 //
@@ -50,6 +50,6 @@ void init_symbol_iterator(const mach_header_t *header,
     }
 }
 
-void *self_caller() {
+void *self_caller_address(void) {
     return __builtin_return_address(2);
 }

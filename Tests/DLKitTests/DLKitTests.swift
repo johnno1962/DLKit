@@ -7,24 +7,26 @@ final class DLKitTests: XCTestCase {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct
         // results.
+        print(DLKit.mainImage)
         let mangledTestClassSymbol = "$s10DLKitTestsAACN"
         guard let testImage = DLKit.imageMap["DLKitTests"] else {
             XCTFail("Could not locate test image")
             return
         }
         XCTAssertEqual(DLKit.selfImage, testImage, "Images equal")
-        for (name, value) in testImage where value != nil {
+        for (name, value) in DLKit.mainImage where value != nil {
             print(name.demangle ?? String(cString: name), value as Any)
         }
-        guard let _ = testImage[mangledTestClassSymbol] else {
+        guard let pointer1 = testImage[[mangledTestClassSymbol]][0] else {
             XCTFail("Symbol lookup fails")
             return
         }
-        guard let pointer = DLKit.allImages[mangledTestClassSymbol] else {
+        guard let pointer2 = DLKit.allImages[mangledTestClassSymbol] else {
             XCTFail("Global symbol lookup fails")
             return
         }
-        guard let (name, image) = DLKit.allImages[pointer] else {
+        XCTAssertEqual(pointer1, pointer2, "Pointers equal")
+        guard let (name, image) = DLKit.allImages[pointer2] else {
             XCTFail("Reverse lookup fails")
             return
         }

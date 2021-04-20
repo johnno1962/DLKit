@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#4 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#8 $
 //
 
 import Foundation
@@ -26,7 +26,11 @@ public struct DLKit {
     }
     /// Image of code referencing this property
     public static var selfImage: ImageSymbols {
-        return allImages[self_caller()!]!.image
+        return allImages[self_caller_address()!]!.image
+    }
+    /// List of all loaded images in order
+    public static var imageList: [ImageSymbols] {
+        return allImages.imageList
     }
     /// Map of all loaded images
     public static var imageMap: [String: ImageSymbols] {
@@ -93,6 +97,10 @@ public struct ImageNumber: Equatable {
     public var imagePath: String {
         return String(cString: imageName)
     }
+    /// Short name for image
+    public var imageKey: String {
+        return URL(fileURLWithPath: imagePath).lastPathComponent
+    }
 }
 
 /// Abstraction for an image an operations on it's symbol table
@@ -112,15 +120,21 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     public init(imageIndex: UInt32) {
         self.imageNumber = ImageNumber(imageIndex: imageIndex)
     }
+
     /// Array of image numbers covered - used for Pseudo images represenint more than one image
     open var imageNumbers: [ImageNumber] {
         return [imageNumber]
     }
-    /// Produce a map of images covered by lastPathComponent of the imagePath
+    /// List of wrapped images
+    public var imageList: [ImageSymbols] {
+        return imageNumbers.map {
+            ImageSymbols(imageIndex: $0.imageIndex)
+        }
+    }
+    /// Produce a map of images keyed by lastPathComponent of the imagePath
     public var imageMap: [String: ImageSymbols] {
-        Dictionary(uniqueKeysWithValues: imageNumbers.map {
-            return (URL(fileURLWithPath: $0.imagePath).lastPathComponent,
-                    ImageSymbols(imageIndex: $0.imageIndex))
+        return Dictionary(uniqueKeysWithValues: imageList.map {
+            return ($0.imageNumber.imageKey, $0)
         })
     }
     /// Loook up an individual symbol by name
@@ -169,6 +183,11 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
                 NSLog("DLKit: No symbols replaced, have you added -Xlinker -interposable to your project's \"Other Linker Flags\"?")
             }
         }
+    }
+    /// Slightly hacky Array of Strings version
+    public subscript (names: [String]) -> [UnsafeMutableRawPointer?] {
+        get { return self[names.map {$0.withCString {$0}}] }
+        set (newValue) { self[names.map {$0.withCString {$0}}] = newValue }
     }
     /// Inverse lookup returning image symbol name and wrapped image for an address.
     public subscript (ptr: UnsafeMutableRawPointer)
@@ -243,12 +262,13 @@ class AppImages: AnyImage {
 class MainImage: AnyImage {
     override init() {
         super.init()
+        imageNumber = imageNumbers[0]
         imageHandle = DLKit.RTLD_MAIN_ONLY
-        if let mainExecutable = Bundle.main.executablePath,
-           let mainImage = imageNumbers.filter( {
-            strcmp($0.imageName, mainExecutable) == 0
-        }).first {
-            imageNumber = mainImage
+    }
+    open override var imageNumbers: [ImageNumber] {
+        let mainExecutable = Bundle.main.executablePath
+        return super.imageNumbers.filter {
+            strcmp(mainExecutable, $0.imageName) == 0
         }
     }
 }
