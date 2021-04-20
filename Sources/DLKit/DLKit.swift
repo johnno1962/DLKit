@@ -6,11 +6,13 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#17 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#22 $
 //
 
 import Foundation
+#if SWIFT_PACKAGE
 import DLKitC
+#endif
 
 /// Interface to symbols of dynamically loaded images (executable or frameworks).
 public struct DLKit {
@@ -38,6 +40,9 @@ public struct DLKit {
     }
     public static let RTLD_DEFAULT = UnsafeMutableRawPointer(bitPattern: -2)
     public static let RTLD_MAIN_ONLY = UnsafeMutableRawPointer(bitPattern: -5)
+    public static var logger = { (msg: String) in
+        NSLog("DLKit: %@", msg)
+    }
 }
 
 @_silgen_name("swift_demangle")
@@ -113,7 +118,7 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     }
 
     /// Wrapped load index of image
-    public var imageNumber: ImageNumber
+    public let imageNumber: ImageNumber
     /// Lazilly recovered handle returned by dlopen
     public var imageHandle: UnsafeMutableRawPointer?
 
@@ -154,8 +159,13 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
             /// Use fishhook to replace references to the named symbol with new values
             /// Works for symbols references across framework boundaries or inside
             /// an image if it has been linked with -Xlinker -interposable.
-            var rebindings = (0..<names.count).map {
-                rebinding(name: names[$0], replacement: newValue[$0], replaced: nil)
+            var rebindings: [rebinding] = (0..<names.count).compactMap {
+                guard $0 < newValue.count,
+                    let replacement = newValue[$0] else {
+                        DLKit.logger("missing replacement at index $0 for symbol \(String(cString: names[$0]))")
+                    return nil
+                }
+                return rebinding(name: names[$0], replacement: replacement, replaced: nil)
             }
             var replaced = 0
             rebindings.withUnsafeMutableBufferPointer {
@@ -180,7 +190,7 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
             }
             // If nothing was replaced remind the user to use -interposable.
             if replaced == 0 {
-                NSLog("DLKit: No symbols replaced, have you added -Xlinker -interposable to your project's \"Other Linker Flags\"?")
+                DLKit.logger("No symbols replaced, have you added -Xlinker -interposable to your project's \"Other Linker Flags\"?")
             }
         }
     }
@@ -215,7 +225,7 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     /// - Parameter withSuffixes: Suffixes to search for
     /// - Returns: Swift symbols with any of the suffixes
     public func swiftSymbols(withSuffixes: [String]) -> [Element] {
-        self.filter { (name, value, entry) in
+        return self.filter { (name, value, entry) in
             guard value != nil && strncmp(name, "_$s", 3) == 0 else { return false }
             let symbol = String(cString: name)
             return withSuffixes.first(where: { symbol.hasSuffix($0) }) != nil
@@ -285,15 +295,15 @@ class AppImages: AnyImage {
 /// Pseudo image representing main executable image
 class MainImage: ImageSymbols {
     init() {
-        super.init(imageIndex: ~0)
         let mainExecutable = Bundle.main.executablePath
-        if let mainImageNumber = DLKit.allImages.imageNumbers.first(where: {
-            strcmp(mainExecutable, $0.imageName) == 0
-        }) {
-            imageNumber = mainImageNumber
-        } else {
-            NSLog("DLKit: Could not find main executable image")
+        guard let mainImageNumber = mainExecutable?.withCString({ mainPath in
+            DLKit.allImages.imageNumbers.first(where: {
+                strcmp(mainPath, $0.imageName) == 0
+            })}) else {
+            DLKit.logger("Could not find image for main executable \(mainExecutable ?? "nil")")
+            fatalError()
         }
+        super.init(imageIndex: mainImageNumber.imageIndex)
         imageHandle = DLKit.RTLD_MAIN_ONLY
     }
 }
