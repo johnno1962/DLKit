@@ -22,6 +22,16 @@ Or you can find the symbol and wrapped image for an address:
 if let (name, image) = DLKit.allImages[pointer] else {
 ```
 
+There is a typealias of UnsafePointer<Int8> to `SymbolName` and
+an extension on this typealias to `"demangle"` Swift symbols to
+the Swift language representation of the symbol. There is also a method 
+`mangle` on an image which can "remangle" this representation to a
+symbol name provided the symbol is defined or referred to in the image.
+```
+let swift = name.demangle
+let name = image.mangle(swift: swift)
+```
+
 The subscript operators are settable and you can also "rebind" or "interpose"
 a symbol in your application by assigning it to point to a new implementation:
 ```

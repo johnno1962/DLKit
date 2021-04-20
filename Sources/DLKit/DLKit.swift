@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#8 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#11 $
 //
 
 import Foundation
@@ -199,6 +199,17 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
         }).first else { return nil }
         return (info.dli_sname, ImageSymbols(imageIndex: imageNumber.imageIndex))
     }
+    /// Determine symbol associated with mangled name.
+    /// ("self" much contain definition of or reference to symbol)
+    /// - Parameter swift: Swift language version of symbol
+    /// - Returns: Mangled version of String + value if there is one
+    public func mangle(swift: String)
+        -> (name: SymbolName, value: UnsafeMutableRawPointer?)? {
+        for (name, value, _) in self where name.demangle == swift {
+            return (name+1, value)
+        }
+        return nil
+    }
 }
 
 internal extension UnsafeMutablePointer {
@@ -209,7 +220,8 @@ internal extension UnsafeMutablePointer {
 
 /// Extend Image wrapper to be iterable over the symbols defined
 extension ImageSymbols: Sequence {
-    public typealias Element = (SymbolName, UnsafeMutableRawPointer?)
+    public typealias Element = (name: SymbolName,
+        value: UnsafeMutableRawPointer?, entry: UnsafePointer<nlist_t>)
     public func makeIterator() -> AnyIterator<Element> {
         return AnyIterator(SymbolIterator(imageNumber: imageNumber))
     }
@@ -225,7 +237,8 @@ extension ImageSymbols: Sequence {
             return (state.strings_base + Int(symbol.pointee.n_un.n_strx),
                     symbol.pointee.n_sect == NO_SECT ? nil :
                         UnsafeMutableRawPointer(bitPattern:
-                            state.address_base + Int(symbol.pointee.n_value)))
+                        state.address_base + Int(symbol.pointee.n_value)),
+                    UnsafePointer(symbol))
         }
     }
 }

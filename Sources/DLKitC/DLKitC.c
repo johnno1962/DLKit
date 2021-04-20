@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/DLKitC.c#7 $
+//  $Id: //depot/DLKit/Sources/DLKitC/DLKitC.c#9 $
 //
 //  Provides state for a symbol table iterator.
 //

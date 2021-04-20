@@ -1,3 +1,14 @@
+//
+//  DLKitTests.swift
+//  DLKit
+//
+//  Created by John Holdsworth on 19/04/2021.
+//  Copyright © 2020 John Holdsworth. All rights reserved.
+//
+//  Repo: https://github.com/johnno1962/DLKit
+//  $Id: //depot/DLKit/Tests/DLKitTests/DLKitTests.swift#9 $
+//
+
 import XCTest
 // @testable
 import DLKit
@@ -13,8 +24,14 @@ final class DLKitTests: XCTestCase {
             XCTFail("Could not locate test image")
             return
         }
+        guard let mangled = testImage.mangle(swift:
+            "type metadata for DLKitTests.DLKitTests")?.name,
+            mangledTestClassSymbol == String(cString: mangled) else {
+            XCTFail("Re-mangling test")
+            return
+        }
         XCTAssertEqual(DLKit.selfImage, testImage, "Images equal")
-        for (name, value) in DLKit.mainImage where value != nil {
+        for (name, value, _) in testImage where value != nil {
             print(name.demangle ?? String(cString: name), value as Any)
         }
         guard let pointer1 = testImage[[mangledTestClassSymbol]][0] else {
