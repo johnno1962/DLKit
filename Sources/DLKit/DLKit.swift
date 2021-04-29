@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#22 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#23 $
 //
 
 import Foundation
@@ -217,7 +217,7 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     public func mangle(swift: String)
         -> (name: SymbolName, value: UnsafeMutableRawPointer?)? {
         for (name, value, _) in self where name.demangled == swift {
-            return (name+1, value)
+            return (name, value)
         }
         return nil
     }
@@ -226,7 +226,7 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     /// - Returns: Swift symbols with any of the suffixes
     public func swiftSymbols(withSuffixes: [String]) -> [Element] {
         return self.filter { (name, value, entry) in
-            guard value != nil && strncmp(name, "_$s", 3) == 0 else { return false }
+            guard value != nil && strncmp(name, "$s", 2) == 0 else { return false }
             let symbol = String(cString: name)
             return withSuffixes.first(where: { symbol.hasSuffix($0) }) != nil
         }
@@ -255,7 +255,7 @@ extension ImageSymbols: Sequence {
             guard state.next_symbol < state.symbol_count else { return nil }
             let symbol = state.symbols.advanced(by: Int(state.next_symbol))
             state.next_symbol += 1
-            return (state.strings_base + Int(symbol.pointee.n_un.n_strx),
+            return (state.strings_base + 1 + Int(symbol.pointee.n_un.n_strx),
                     symbol.pointee.n_sect == NO_SECT ? nil :
                         UnsafeMutableRawPointer(bitPattern:
                         state.address_base + Int(symbol.pointee.n_value)),
