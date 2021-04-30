@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#23 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#25 $
 //
 
 import Foundation
@@ -106,6 +106,10 @@ public struct ImageNumber: Equatable {
     public var imageKey: String {
         return URL(fileURLWithPath: imagePath).lastPathComponent
     }
+    /// Short name for image
+    public var symbols: ImageSymbols {
+        return ImageSymbols(imageIndex: imageIndex)
+    }
 }
 
 /// Abstraction for an image an operations on it's symbol table
@@ -132,9 +136,7 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     }
     /// List of wrapped images
     public var imageList: [ImageSymbols] {
-        return imageNumbers.map {
-            ImageSymbols(imageIndex: $0.imageIndex)
-        }
+        return imageNumbers.map { $0.symbols }
     }
     /// Produce a map of images keyed by lastPathComponent of the imagePath
     public var imageMap: [String: ImageSymbols] {
@@ -222,13 +224,14 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
         return nil
     }
     /// Swift symbols encode their type in as a suffix
-    /// - Parameter withSuffixes: Suffixes to search for
+    /// - Parameter withSuffixes: Suffixes to search for or none for all symbols
     /// - Returns: Swift symbols with any of the suffixes
-    public func swiftSymbols(withSuffixes: [String]) -> [Element] {
-        return self.filter { (name, value, entry) in
+    public func swiftSymbols(withSuffixes: [String]? = nil) -> [Element] {
+        return filter { (name, value, entry) in
             guard value != nil && strncmp(name, "$s", 2) == 0 else { return false }
+            guard let suffixes = withSuffixes else { return true }
             let symbol = String(cString: name)
-            return withSuffixes.first(where: { symbol.hasSuffix($0) }) != nil
+            return suffixes.first(where: { symbol.hasSuffix($0) }) != nil
         }
     }
 }
