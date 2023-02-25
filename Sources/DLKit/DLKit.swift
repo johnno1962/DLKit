@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#25 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#26 $
 //
 
 import Foundation
@@ -22,9 +22,13 @@ public struct DLKit {
     public static let appImages: ImageSymbols = AppImages()
     /// Main execuatble image.
     public static let mainImage: ImageSymbols = MainImage()
+    /// Total number of images.
+    public static var imageCount: UInt32 {
+        return _dyld_image_count()
+    }
     /// Last dynamically loaded image.
     public static var lastImage: ImageSymbols {
-        return ImageSymbols(imageIndex: _dyld_image_count()-1)
+        return ImageSymbols(imageIndex: imageCount-1)
     }
     /// Image of code referencing this property
     public static var selfImage: ImageSymbols {
@@ -42,6 +46,16 @@ public struct DLKit {
     public static let RTLD_MAIN_ONLY = UnsafeMutableRawPointer(bitPattern: -5)
     public static var logger = { (msg: String) in
         NSLog("DLKit: %@", msg)
+    }
+    public static func load(dylib: String) -> ImageSymbols? {
+        let index = imageCount
+        guard let handle = dlopen(dylib, RTLD_NOW) else {
+            logger("⚠️ dlopen failed \(String(cString: dlerror()))")
+            return nil
+        }
+        let image = ImageSymbols(imageIndex: index)
+        image.imageHandle = handle
+        return image
     }
 }
 
