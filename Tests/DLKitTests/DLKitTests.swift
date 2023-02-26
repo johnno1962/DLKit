@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Tests/DLKitTests/DLKitTests.swift#10 $
+//  $Id: //depot/DLKit/Tests/DLKitTests/DLKitTests.swift#11 $
 //
 
 import XCTest
@@ -31,8 +31,9 @@ final class DLKitTests: XCTestCase {
             return
         }
         XCTAssertEqual(DLKit.selfImage, testImage, "Images equal")
-        for (name, value, _) in testImage where value != nil {
-            print(name.demangled ?? String(cString: name), value as Any)
+        for entry in testImage where entry.value != nil {
+            print(entry.name.demangled ??
+                String(cString: entry.name), entry.value as Any)
         }
         guard let pointer1 = testImage[[mangledTestClassSymbol]][0] else {
             XCTFail("Symbol lookup fails")

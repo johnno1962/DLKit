@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#26 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#31 $
 //
 
 import Foundation
@@ -205,7 +205,7 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
                 }
             }
             // If nothing was replaced remind the user to use -interposable.
-            if replaced == 0 {
+            if rebindings.count != 0 && replaced == 0 {
                 DLKit.logger("No symbols replaced, have you added -Xlinker -interposable to your project's \"Other Linker Flags\"?")
             }
         }
@@ -232,8 +232,8 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     /// - Returns: Mangled version of String + value if there is one
     public func mangle(swift: String)
         -> (name: SymbolName, value: UnsafeMutableRawPointer?)? {
-        for (name, value, _) in self where name.demangled == swift {
-            return (name, value)
+        for entry in self where entry.name.demangled == swift {
+            return (entry.name, entry.value)
         }
         return nil
     }
@@ -241,7 +241,8 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     /// - Parameter withSuffixes: Suffixes to search for or none for all symbols
     /// - Returns: Swift symbols with any of the suffixes
     public func swiftSymbols(withSuffixes: [String]? = nil) -> [Element] {
-        return filter { (name, value, entry) in
+        return filter {
+            let (name, value) = ($0.name, $0.value)
             guard value != nil && strncmp(name, "$s", 2) == 0 else { return false }
             guard let suffixes = withSuffixes else { return true }
             let symbol = String(cString: name)
@@ -258,8 +259,15 @@ internal extension UnsafeMutablePointer {
 
 /// Extend Image wrapper to be iterable over the symbols defined
 extension ImageSymbols: Sequence {
-    public typealias Element = (name: SymbolName,
-        value: UnsafeMutableRawPointer?, entry: UnsafePointer<nlist_t>)
+    public struct Entry {
+        public let name: SymbolName,
+                   value: UnsafeMutableRawPointer?,
+                   entry: UnsafePointer<nlist_t>
+        public var isDebugging: Bool {
+            return entry.pointee.n_type & UInt8(N_STAB) != 0
+        }
+    }
+    public typealias Element = Entry
     public func makeIterator() -> AnyIterator<Element> {
         return AnyIterator(SymbolIterator(imageNumber: imageNumber))
     }
@@ -272,11 +280,13 @@ extension ImageSymbols: Sequence {
             guard state.next_symbol < state.symbol_count else { return nil }
             let symbol = state.symbols.advanced(by: Int(state.next_symbol))
             state.next_symbol += 1
-            return (state.strings_base + 1 + Int(symbol.pointee.n_un.n_strx),
-                    symbol.pointee.n_sect == NO_SECT ? nil :
+            return Entry(
+                name: state.strings_base + 1 +
+                    Int(symbol.pointee.n_un.n_strx),
+                value: symbol.pointee.n_sect == NO_SECT ? nil :
                         UnsafeMutableRawPointer(bitPattern:
                         state.address_base + Int(symbol.pointee.n_value)),
-                    UnsafePointer(symbol))
+                entry: UnsafePointer(symbol))
         }
     }
 }
