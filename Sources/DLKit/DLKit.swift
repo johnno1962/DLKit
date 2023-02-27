@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#34 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#36 $
 //
 
 import Foundation
@@ -224,10 +224,11 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
         -> (name: DLKit.SymbolName, image: ImageSymbols)? {
         var info = Dl_info()
         guard dladdr(ptr, &info) != 0,
-            let index = imageNumbers.first(where: {
-            info.dli_fname == $0.imageName ||
-            strcmp(info.dli_fname, $0.imageName) == 0
-        }) else { return nil }
+              let index = imageNumbers.first(where: {
+                  info.dli_fname == $0.imageName }) ??
+                imageNumbers.first(where: {
+                    strcmp(info.dli_fname, $0.imageName) == 0
+                }) else { return nil }
         return (info.dli_sname, ImageSymbols(imageNumber: index))
     }
     /// Determine symbol associated with mangled name.
@@ -292,6 +293,9 @@ extension ImageSymbols: Sequence {
                         state.address_base + Int(symbol.pointee.n_value)),
                 entry: UnsafePointer(symbol))
         }
+    }
+    public var definitions: [Entry] {
+        return filter { $0.value != nil && !$0.isDebugging }
     }
 }
 
