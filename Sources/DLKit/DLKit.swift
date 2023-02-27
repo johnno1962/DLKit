@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#31 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#34 $
 //
 
 import Foundation
@@ -16,6 +16,8 @@ import DLKitC
 
 /// Interface to symbols of dynamically loaded images (executable or frameworks).
 public struct DLKit {
+    /// Alias for symbol name type
+    public typealias SymbolName = UnsafePointer<CChar>
     /// Pseudo image for all images loaded in the process.
     public static let allImages: ImageSymbols = AnyImage()
     /// Pseudo image for images loaded from the app bundle.
@@ -23,12 +25,12 @@ public struct DLKit {
     /// Main execuatble image.
     public static let mainImage: ImageSymbols = MainImage()
     /// Total number of images.
-    public static var imageCount: UInt32 {
+    public static var imageCount: ImageSymbols.ImageNumber {
         return _dyld_image_count()
     }
     /// Last dynamically loaded image.
     public static var lastImage: ImageSymbols {
-        return ImageSymbols(imageIndex: imageCount-1)
+        return ImageSymbols(imageNumber: imageCount-1)
     }
     /// Image of code referencing this property
     public static var selfImage: ImageSymbols {
@@ -53,33 +55,31 @@ public struct DLKit {
             logger("⚠️ dlopen failed \(String(cString: dlerror()))")
             return nil
         }
-        let image = ImageSymbols(imageIndex: index)
+        let image = ImageSymbols(imageNumber: index)
         image.imageHandle = handle
         return image
     }
 }
 
-@_silgen_name("swift_demangle")
-private
-func _stdlib_demangleImpl(
-    _ mangledName: UnsafePointer<CChar>?,
-    mangledNameLength: UInt,
-    outputBuffer: UnsafeMutablePointer<UInt8>?,
-    outputBufferSize: UnsafeMutablePointer<UInt>?,
-    flags: UInt32
-    ) -> UnsafeMutablePointer<CChar>?
-
-@_silgen_name("__cxa_demangle")
-func __cxa_demangle(_ mangled_name: UnsafePointer<Int8>?,
-                    output_buffer: UnsafePointer<Int8>?,
-                    length: UnsafeMutablePointer<size_t>?,
-                    status: UnsafeMutablePointer<Int32>?)
-    -> UnsafeMutablePointer<Int8>?
-
-/// Alias for symbol name type
-public typealias SymbolName = UnsafePointer<Int8>
 /// Extension for easy demangling of Swift symbols
-public extension SymbolName {
+public extension DLKit.SymbolName {
+    @_silgen_name("swift_demangle")
+    private
+    func _stdlib_demangleImpl(
+        _ mangledName: UnsafePointer<CChar>?,
+        mangledNameLength: UInt,
+        outputBuffer: UnsafeMutablePointer<UInt8>?,
+        outputBufferSize: UnsafeMutablePointer<UInt>?,
+        flags: UInt32
+        ) -> UnsafeMutablePointer<CChar>?
+
+    @_silgen_name("__cxa_demangle")
+    func __cxa_demangle(_ mangled_name: UnsafePointer<Int8>?,
+                        output_buffer: UnsafePointer<Int8>?,
+                        length: UnsafeMutablePointer<size_t>?,
+                        status: UnsafeMutablePointer<Int32>?)
+        -> UnsafeMutablePointer<Int8>?
+
     /// return Swif tlanguage description of symbol
     var demangled: String? {
         if let demangledNamePtr = _stdlib_demangleImpl(
@@ -95,53 +95,57 @@ public extension SymbolName {
     }
 }
 
-/// Warrper for index into loaded images
-public struct ImageNumber: Equatable {
-    /// Index into loaded images
-    public let imageIndex: UInt32
+public protocol ImageInfo {
+    var imageNumber: ImageSymbols.ImageNumber { get }
+}
+
+public extension ImageInfo {
     /// Base address of image (pointer to mach_header at beginning of file)
-    public var imageHeader: UnsafePointer<mach_header_t> {
-        return _dyld_get_image_header(imageIndex)
+    var imageHeader: UnsafePointer<mach_header_t> {
+        return _dyld_get_image_header(imageNumber)
             .withMemoryRebound(to: mach_header_t.self, capacity: 1) {$0}
     }
     /// Amount image has been slid on load (after ASLR)
-    public var imageSlide: intptr_t {
-        return _dyld_get_image_vmaddr_slide(imageIndex)
+    var imageSlide: intptr_t {
+        return _dyld_get_image_vmaddr_slide(imageNumber)
     }
     /// Path to image as cString
-    public var imageName: UnsafePointer<Int8> {
-        return _dyld_get_image_name(imageIndex)
+    var imageName: UnsafePointer<Int8> {
+        return _dyld_get_image_name(imageNumber)
     }
     /// Path to image
-    public var imagePath: String {
+    var imagePath: String {
         return String(cString: imageName)
     }
     /// Short name for image
-    public var imageKey: String {
+    var imageKey: String {
         return URL(fileURLWithPath: imagePath).lastPathComponent
-    }
-    /// Short name for image
-    public var symbols: ImageSymbols {
-        return ImageSymbols(imageIndex: imageIndex)
     }
 }
 
+extension ImageSymbols.ImageNumber: ImageInfo {
+    public var imageNumber: Self { return self }
+}
+
 /// Abstraction for an image an operations on it's symbol table
-open class ImageSymbols: Equatable, CustomStringConvertible {
+open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
+    /// Index into loaded images
+    public typealias ImageNumber = UInt32
     public static func == (lhs: ImageSymbols, rhs: ImageSymbols) -> Bool {
         return lhs.imageNumber == rhs.imageNumber
     }
     public var description: String {
-        return "#\(imageNumber.imageIndex) \(imageNumber.imagePath) \(imageNumber.imageHeader)"
+        return "#\(imageNumber) \(imagePath) \(imageHeader)"
     }
 
-    /// Wrapped load index of image
+    /// Index into loaded images
     public let imageNumber: ImageNumber
+
     /// Lazilly recovered handle returned by dlopen
     public var imageHandle: UnsafeMutableRawPointer?
 
-    public init(imageIndex: UInt32) {
-        self.imageNumber = ImageNumber(imageIndex: imageIndex)
+    public init(imageNumber: ImageNumber) {
+        self.imageNumber = imageNumber
     }
 
     /// Array of image numbers covered - used for Pseudo images represening more than one image
@@ -150,24 +154,24 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     }
     /// List of wrapped images
     public var imageList: [ImageSymbols] {
-        return imageNumbers.map { $0.symbols }
+        return imageNumbers.map { ImageSymbols(imageNumber: $0) }
     }
     /// Produce a map of images keyed by lastPathComponent of the imagePath
     public var imageMap: [String: ImageSymbols] {
         return Dictionary(uniqueKeysWithValues: imageList.map {
-            ($0.imageNumber.imageKey, $0)
+            ($0.imageKey, $0)
         })
     }
     /// Loook up an individual symbol by name
-    public subscript (name: SymbolName) -> UnsafeMutableRawPointer? {
+    public subscript (name: DLKit.SymbolName) -> UnsafeMutableRawPointer? {
         get { return self[[name]][0] }
         set (newValue) { self[[name]] = [newValue] }
     }
     /// Loook up an array of symbols
-    public subscript (names: [SymbolName]) -> [UnsafeMutableRawPointer?] {
+    public subscript (names: [DLKit.SymbolName]) -> [UnsafeMutableRawPointer?] {
         get {
             let handle = imageHandle ??
-                dlopen(imageNumber.imageName, RTLD_LAZY)
+                dlopen(imageName, RTLD_LAZY)
             imageHandle = handle
             return names.map {dlsym(handle, $0)}
         }
@@ -217,21 +221,21 @@ open class ImageSymbols: Equatable, CustomStringConvertible {
     }
     /// Inverse lookup returning image symbol name and wrapped image for an address.
     public subscript (ptr: UnsafeMutableRawPointer)
-        -> (name: SymbolName, image: ImageSymbols)? {
+        -> (name: DLKit.SymbolName, image: ImageSymbols)? {
         var info = Dl_info()
         guard dladdr(ptr, &info) != 0,
-            let imageNumber = imageNumbers.first(where: {
+            let index = imageNumbers.first(where: {
             info.dli_fname == $0.imageName ||
             strcmp(info.dli_fname, $0.imageName) == 0
         }) else { return nil }
-        return (info.dli_sname, ImageSymbols(imageIndex: imageNumber.imageIndex))
+        return (info.dli_sname, ImageSymbols(imageNumber: index))
     }
     /// Determine symbol associated with mangled name.
     /// ("self" must contain definition of or reference to symbol)
     /// - Parameter swift: Swift language version of symbol
     /// - Returns: Mangled version of String + value if there is one
     public func mangle(swift: String)
-        -> (name: SymbolName, value: UnsafeMutableRawPointer?)? {
+        -> (name: DLKit.SymbolName, value: UnsafeMutableRawPointer?)? {
         for entry in self where entry.name.demangled == swift {
             return (entry.name, entry.value)
         }
@@ -260,7 +264,7 @@ internal extension UnsafeMutablePointer {
 /// Extend Image wrapper to be iterable over the symbols defined
 extension ImageSymbols: Sequence {
     public struct Entry {
-        public let name: SymbolName,
+        public let name: DLKit.SymbolName,
                    value: UnsafeMutableRawPointer?,
                    entry: UnsafePointer<nlist_t>
         public var isDebugging: Bool {
@@ -269,12 +273,12 @@ extension ImageSymbols: Sequence {
     }
     public typealias Element = Entry
     public func makeIterator() -> AnyIterator<Element> {
-        return AnyIterator(SymbolIterator(imageNumber: imageNumber))
+        return AnyIterator(SymbolIterator(image: self))
     }
     struct SymbolIterator: IteratorProtocol {
         var state = symbol_iterator()
-        init(imageNumber: ImageNumber) {
-            init_symbol_iterator(imageNumber.imageHeader, &state)
+        init(image: ImageSymbols) {
+            init_symbol_iterator(image.imageHeader, &state)
         }
         mutating func next() -> ImageSymbols.Element? {
             guard state.next_symbol < state.symbol_count else { return nil }
@@ -294,11 +298,11 @@ extension ImageSymbols: Sequence {
 /// Pseudo image representing all images
 class AnyImage: ImageSymbols {
     init() {
-        super.init(imageIndex: ~0)
+        super.init(imageNumber: ~0)
         imageHandle = DLKit.RTLD_DEFAULT
     }
     open override var imageNumbers: [ImageNumber] {
-        return (0..<_dyld_image_count()).map {ImageNumber(imageIndex: $0)}
+        return (0..<_dyld_image_count()).map {$0}
     }
 }
 
@@ -330,7 +334,7 @@ class MainImage: ImageSymbols {
             DLKit.logger("Could not find image for main executable \(mainExecutable ?? "nil")")
             fatalError()
         }
-        super.init(imageIndex: mainImageNumber.imageIndex)
+        super.init(imageNumber: mainImageNumber)
         imageHandle = DLKit.RTLD_MAIN_ONLY
     }
 }
