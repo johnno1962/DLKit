@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#37 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#47 $
 //
 
 import Foundation
@@ -131,6 +131,7 @@ extension ImageSymbols.ImageNumber: ImageInfo {
 open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     /// Index into loaded images
     public typealias ImageNumber = UInt32
+    public typealias SymbolValue = UnsafeMutableRawPointer
     public static func == (lhs: ImageSymbols, rhs: ImageSymbols) -> Bool {
         return lhs.imageNumber == rhs.imageNumber
     }
@@ -162,65 +163,8 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
             ($0.imageKey, $0)
         })
     }
-    /// Loook up an individual symbol by name
-    public subscript (name: DLKit.SymbolName) -> UnsafeMutableRawPointer? {
-        get { return self[[name]][0] }
-        set (newValue) { self[[name]] = [newValue] }
-    }
-    /// Loook up an array of symbols
-    public subscript (names: [DLKit.SymbolName]) -> [UnsafeMutableRawPointer?] {
-        get {
-            let handle = imageHandle ??
-                dlopen(imageName, RTLD_LAZY)
-            imageHandle = handle
-            return names.map {dlsym(handle, $0)}
-        }
-        set (newValue) {
-            /// Use fishhook to replace references to the named symbol with new values
-            /// Works for symbols references across framework boundaries or inside
-            /// an image if it has been linked with -Xlinker -interposable.
-            var rebindings: [rebinding] = (0..<names.count).compactMap {
-                guard $0 < newValue.count,
-                    let replacement = newValue[$0] else {
-                        DLKit.logger("missing replacement at index $0 for symbol \(String(cString: names[$0]))")
-                    return nil
-                }
-                return rebinding(name: names[$0], replacement: replacement, replaced: nil)
-            }
-            var replaced = 0
-            rebindings.withUnsafeMutableBufferPointer {
-                let buffer = $0.baseAddress!, count = $0.count
-                for image in imageNumbers {
-                    // Have the rebind operation store the previous value
-                    // to determine when rebindings have been successful.
-                    for i in 0..<count {
-                        buffer[i].replaced =
-                            UnsafeMutablePointer(recast: &buffer[i].replaced)
-                    }
-                    rebind_symbols_image(
-                        UnsafeMutableRawPointer(mutating: image.imageHeader),
-                        image.imageSlide, buffer, count)
-                    for i in 0..<count {
-                        if buffer[i].replaced !=
-                            UnsafeMutablePointer(recast: &buffer[i].replaced) {
-                            replaced += 1
-                        }
-                    }
-                }
-            }
-            // If nothing was replaced remind the user to use -interposable.
-            if rebindings.count != 0 && replaced == 0 {
-                DLKit.logger("No symbols replaced, have you added -Xlinker -interposable to your project's \"Other Linker Flags\"?")
-            }
-        }
-    }
-    /// Slightly dubious Array of Strings version of subscript
-    public subscript (names: [String]) -> [UnsafeMutableRawPointer?] {
-        get { return self[names.map {$0.withCString {$0}}] }
-        set (newValue) { self[names.map {$0.withCString {$0}}] = newValue }
-    }
     /// Inverse lookup returning image symbol name and wrapped image for an address.
-    public subscript (ptr: UnsafeMutableRawPointer)
+    public subscript (ptr: SymbolValue)
         -> (name: DLKit.SymbolName, image: ImageSymbols)? {
         var info = Dl_info()
         guard dladdr(ptr, &info) != 0,
@@ -231,12 +175,82 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
                 }) else { return nil }
         return (info.dli_sname, ImageSymbols(imageNumber: index))
     }
+    /// Loook up an individual symbol by name
+    public subscript (name: DLKit.SymbolName) -> SymbolValue? {
+        get { return self[[name]][0] }
+        set (newValue) { self[[name]] = [newValue] }
+    }
+    /// Loook up an array of symbols
+    public subscript (names: [DLKit.SymbolName]) -> [SymbolValue?] {
+        get {
+            let handle = imageHandle ??
+                dlopen(imageName, RTLD_LAZY)
+            imageHandle = handle
+            return names.map {dlsym(handle, $0)}
+        }
+        set (newValue) {
+            /// Use fishhook to replace references to the named symbol with new values
+            /// Works for symbols references across framework boundaries or inside
+            /// an image if it has been linked with -Xlinker -interposable.
+            _ = rebind(names: names, values: newValue, warn: true)
+        }
+    }
+    /// Slightly dubious Array of Strings version of subscript
+    public subscript (symbols: [String]) -> [SymbolValue?] {
+        get { return self[symbols.map {$0.withCString {$0}}] }
+        set (newValue) {
+            _ = rebind(symbols: symbols, values: newValue, warn: true)
+        }
+    }
+    public func rebind(symbols: [String], values: [SymbolValue?],
+                       warn: Bool = false) -> [DLKit.SymbolName] {
+        let names = symbols.map {$0.withCString {$0}}
+        return rebind(names: names, values: values, warn: warn)
+    }
+    public func rebind(names: [DLKit.SymbolName], values: [SymbolValue?],
+                       warn: Bool = false) -> [DLKit.SymbolName] {
+        var rebindings: [rebinding] = (0..<names.count).compactMap {
+            guard $0 < values.count,
+                  let replacement = values[$0] else {
+                    DLKit.logger("missing replacement at index $0 for symbol \(String(cString: names[$0]))")
+                return nil
+            }
+            return rebinding(name: names[$0], replacement: replacement, replaced: nil)
+        }
+        let replaced = rebind(rebindings: &rebindings)
+        // If nothing was replaced remind the user to use -interposable.
+        if warn && replaced.count == 0 && names.count != 0 {
+            DLKit.logger("No symbols replaced, have you added -Xlinker -interposable to your project's \"Other Linker Flags\"?")
+        }
+        return replaced
+    }
+    public func rebind(rebindings: inout [rebinding]) -> [DLKit.SymbolName] {
+        var replaced = [DLKit.SymbolName]()
+        for image in imageNumbers {
+            // Have the rebind operation store the previous value
+            // to determine when rebindings have been successful.
+            for i in 0..<rebindings.count {
+                rebindings[i].replaced =
+                    UnsafeMutablePointer(recast: &rebindings[i].replaced)
+            }
+            rebind_symbols_image(
+                UnsafeMutableRawPointer(mutating: image.imageHeader),
+                image.imageSlide, &rebindings, rebindings.count)
+            for i in 0..<rebindings.count {
+                if rebindings[i].replaced !=
+                    UnsafeMutablePointer(recast: &rebindings[i].replaced) {
+                    replaced.append(rebindings[i].name)
+                }
+            }
+        }
+        return replaced
+    }
     /// Determine symbol associated with mangled name.
     /// ("self" must contain definition of or reference to symbol)
     /// - Parameter swift: Swift language version of symbol
     /// - Returns: Mangled version of String + value if there is one
     public func mangle(swift: String)
-        -> (name: DLKit.SymbolName, value: UnsafeMutableRawPointer?)? {
+        -> (name: DLKit.SymbolName, value: SymbolValue?)? {
         for entry in self where entry.name.demangled == swift {
             return (entry.name, entry.value)
         }
@@ -266,7 +280,7 @@ internal extension UnsafeMutablePointer {
 extension ImageSymbols: Sequence {
     public struct Entry {
         public let name: DLKit.SymbolName,
-                   value: UnsafeMutableRawPointer?,
+                   value: SymbolValue?,
                    entry: UnsafePointer<nlist_t>
         public var isDebugging: Bool {
             return entry.pointee.n_type & UInt8(N_STAB) != 0
@@ -288,14 +302,16 @@ extension ImageSymbols: Sequence {
             return Entry(
                 name: state.strings_base + 1 +
                     Int(symbol.pointee.n_un.n_strx),
-                value: symbol.pointee.n_sect == NO_SECT ? nil :
-                        UnsafeMutableRawPointer(bitPattern:
-                        state.address_base + Int(symbol.pointee.n_value)),
+                value: symbol.pointee.n_sect == NO_SECT ? nil : SymbolValue(
+                    bitPattern: state.address_base + Int(symbol[0].n_value)),
                 entry: UnsafePointer(symbol))
         }
     }
     public var definitions: [Entry] {
-        return filter { $0.value != nil && !$0.isDebugging }
+        return filter { !$0.isDebugging && $0.value != nil }
+    }
+    public func entry(named: DLKit.SymbolName) -> Entry? {
+        return definitions.first(where: { strcmp($0.name, named) == 0 })
     }
 }
 
