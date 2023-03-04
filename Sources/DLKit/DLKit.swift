@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#67 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#68 $
 //
 
 import Foundation
@@ -237,7 +237,7 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     /// - Parameter swift: Swift language version of symbol
     /// - Returns: Mangled version of String + value if there is one
     open func mangle(swift: String) -> Entry? {
-        return unfiltered.first(where: { $0.name.demangled == swift })
+        return entries.first(where: { $0.name.demangled == swift })
     }
     /// Swift symbols encode their type as a suffix
     /// - Parameter withSuffixes: Suffixes to search for or none for all symbols
