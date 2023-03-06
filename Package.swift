@@ -26,7 +26,8 @@ let package = Package(
             dependencies: ["DLKitC"]),
         .target(
             name: "DLKitC",
-            dependencies: []),
+            dependencies: [],
+            cSettings: [.define("FISHHOOK_EXPORT")]),
         .testTarget(
             name: "DLKitTests",
             dependencies: ["DLKit"]),
