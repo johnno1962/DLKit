@@ -43,5 +43,3 @@ extern void init_symbol_iterator(const mach_header_t *header,
                                  struct symbol_iterator *state);
 
 extern void *self_caller_address(void);
-
-#import "fishhook.h"

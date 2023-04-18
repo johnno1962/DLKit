@@ -10,7 +10,7 @@
 //
 
 #if SWIFT_PACKAGE
-import DLKitC
+import fishhook
 #endif
 
 internal extension UnsafeMutablePointer {
