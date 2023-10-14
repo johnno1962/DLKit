@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#20 $
+//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#21 $
 //
 
 #if SWIFT_PACKAGE
@@ -71,11 +71,11 @@ extension ImageSymbols: Sequence {
             self.owner = owner
             super.init(imageNumber: owner.imageNumber, typeMask: typeMask)
         }
+        override open var imageHeader: UnsafePointer<mach_header_t> {
+            return owner.imageHeader
+        }
         open override var imageNumbers: [ImageNumber] {
             return owner.imageNumbers
-        }
-        override open var imageList: [ImageSymbols] {
-            return owner.imageList
         }
     }
 

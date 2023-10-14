@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/FileSymbols.swift#2 $
+//  $Id: //depot/DLKit/Sources/DLKit/FileSymbols.swift#3 $
 //
 
 import Foundation
@@ -30,10 +30,10 @@ open class FileSymbols: ImageSymbols {
         return [self]
     }
 
-    public init?(path: String) {
+    public init?(path: String, typeMask: Int32 = ImageSymbols.mask) {
         guard let data = NSMutableData(contentsOfFile: path) else { return nil }
         self.data = data
-        super.init(imageNumber: Self.fileNumber)
+        super.init(imageNumber: Self.fileNumber, typeMask: typeMask)
         guard imageHeader.pointee.magic == MH_MAGIC_64 else { return nil }
         Self.filePaths[Self.fileNumber] = path
         Self.fileNumber += 1

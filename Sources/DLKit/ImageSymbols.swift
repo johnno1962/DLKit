@@ -6,7 +6,7 @@
 //  Created by John Holdsworth on 14/10/2023.
 //  
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#1 $
+//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#2 $
 //
 
 import Foundation
@@ -20,6 +20,8 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     public typealias ImageNumber = DLKit.ImageNumber
     /// Index into loaded images
     public typealias SymbolValue = UnsafeMutableRawPointer
+    /// Symbols included if these bits not set
+    public static var mask: Int32 = N_STAB
     public static func == (lhs: ImageSymbols, rhs: ImageSymbols) -> Bool {
         return lhs.imageNumber == rhs.imageNumber
     }
@@ -39,7 +41,7 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
         return imageNumber.imageHeader
     }
 
-    public init(imageNumber: ImageNumber, typeMask: Int32 = N_STAB) {
+    public init(imageNumber: ImageNumber, typeMask: Int32 = ImageSymbols.mask) {
         self.imageNumber = imageNumber
         self.typeMask = UInt8(typeMask)
     }
@@ -51,7 +53,13 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     /// List of wrapped images
     open var imageList: [ImageSymbols] {
         return imageNumbers.map {
-            ImageSymbols(imageNumber: $0, typeMask: Int32(typeMask)) }
+            if typeMask != ImageSymbols.mask, let path = FileSymbols.filePaths[$0],
+                let masked = FileSymbols(path: path, typeMask: Int32(typeMask)) {
+                return masked
+            } else {
+                return ImageSymbols(imageNumber: $0, typeMask: Int32(typeMask))
+            }
+        }
     }
     /// Produce a map of images keyed by lastPathComponent of the imagePath
     open var imageMap: [String: ImageSymbols] {
