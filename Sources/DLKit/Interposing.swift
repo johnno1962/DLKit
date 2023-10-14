@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#2 $
+//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#5 $
 //
 
 #if SWIFT_PACKAGE
@@ -20,6 +20,26 @@ internal extension UnsafeMutablePointer {
 }
 
 extension ImageSymbols {
+    public func rebind(mapping: [String: String],
+                       scope: UnsafeMutableRawPointer? = DLKit.RTLD_DEFAULT,
+                       warn: Bool = true) -> [DLKit.SymbolName] {
+        return rebind(symbols: Array(mapping.keys),
+                      values: Array(mapping.values),
+                      scope: scope, warn: warn)
+    }
+    public func rebind(symbols: [String], values: [String],
+                       scope: UnsafeMutableRawPointer? = DLKit.RTLD_DEFAULT,
+                       warn: Bool = true) -> [DLKit.SymbolName] {
+        return rebind(names: symbols.map {$0.withCString {$0}}, values:
+                        values.map { if let replacement = dlsym(scope, $0) {
+                                return replacement
+                            }
+                            DLKit.logger("""
+                                Unable to find replacement for symbol: \($0)
+                                """)
+                            return nil
+                        }, warn: warn)
+    }
     public func rebind(symbols: [String], values: [SymbolValue?],
                        warn: Bool = false) -> [DLKit.SymbolName] {
         let names = symbols.map {$0.withCString {$0}}
@@ -30,7 +50,7 @@ extension ImageSymbols {
         var rebindings: [rebinding] = (0..<names.count).compactMap {
             guard $0 < values.count,
                   let replacement = values[$0] else {
-                    DLKit.logger("missing replacement at index $0 for symbol \(String(cString: names[$0]))")
+                    DLKit.logger("missing replacement at index \($0) for symbol \(String(cString: names[$0]))")
                 return nil
             }
             return rebinding(name: names[$0], replacement: replacement, replaced: nil)
@@ -102,6 +122,13 @@ extension ImageSymbols {
     /// Array of Strings version of subscript
     public subscript (symbols: [String]) -> [SymbolValue?] {
         get { return self[symbols.map {$0.withCString {$0}}] }
+        set (newValue) {
+            _ = rebind(symbols: symbols, values: newValue, warn: true)
+        }
+    }
+    /// Array of Strings version of subscript with lookup
+    public subscript (symbols: [String]) -> [String] {
+        get { return symbols }
         set (newValue) {
             _ = rebind(symbols: symbols, values: newValue, warn: true)
         }
