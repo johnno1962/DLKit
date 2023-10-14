@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#19 $
+//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#20 $
 //
 
 #if SWIFT_PACKAGE
@@ -20,7 +20,7 @@ extension ImageSymbols: Sequence {
         public let imageNumber: ImageNumber,
                    name: DLKit.SymbolName,
                    value: SymbolValue?,
-                   entry: UnsafePointer<nlist_t>
+                   entry: UnsafeMutablePointer<nlist_t>
 
         public var isDebugging: Bool {
             return entry.pointee.n_type & UInt8(N_STAB) != 0
@@ -30,6 +30,7 @@ extension ImageSymbols: Sequence {
                           unsafeBitCast(value, to: uintptr_t.self),
                           entry.pointee.n_type, name)+imageKey
         }
+        public var symbol: String { return String(cString: name) }
     }
 
     struct SymbolIterator: IteratorProtocol {
@@ -49,7 +50,7 @@ extension ImageSymbols: Sequence {
                     Int(symbol.pointee.n_un.n_strx),
                 value: symbol.pointee.n_sect == NO_SECT ? nil : SymbolValue(
                     bitPattern: state.address_base + Int(symbol[0].n_value)),
-                entry: UnsafePointer(symbol))
+                entry: symbol)
         }
     }
 
@@ -70,8 +71,11 @@ extension ImageSymbols: Sequence {
             self.owner = owner
             super.init(imageNumber: owner.imageNumber, typeMask: typeMask)
         }
-        open override var imageNumbers: [ImageSymbols.ImageNumber] {
+        open override var imageNumbers: [ImageNumber] {
             return owner.imageNumbers
+        }
+        override open var imageList: [ImageSymbols] {
+            return owner.imageList
         }
     }
 

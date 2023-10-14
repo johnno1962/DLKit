@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#68 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#69 $
 //
 
 import Foundation
@@ -16,16 +16,18 @@ import DLKitC
 
 /// Interface to symbols of dynamically loaded images (executable or frameworks).
 public struct DLKit {
+    /// Offset into table of loaded images
+    public typealias ImageNumber = UInt32
     /// Alias for symbol name type
     public typealias SymbolName = UnsafePointer<CChar>
     /// Pseudo image for all images loaded in the process.
-    public static let allImages: ImageSymbols = AllImages()
+    public static let allImages = AllImages()
     /// Pseudo image for images loaded from the app bundle.
-    public static let appImages: ImageSymbols = AppImages()
+    public static let appImages = AppImages()
     /// Main execuatble image.
-    public static let mainImage: ImageSymbols = MainImage()
+    public static let mainImage = MainImage()
     /// Total number of images.
-    public static var imageCount: ImageSymbols.ImageNumber {
+    public static var imageCount: ImageNumber {
         return _dyld_image_count()
     }
     /// Last dynamically loaded image.
@@ -106,42 +108,12 @@ public struct DLKit {
     }
 }
 
-/// Extension for easy demangling of Swift symbols
-public extension DLKit.SymbolName {
-    @_silgen_name("swift_demangle")
-    private
-    func _stdlib_demangleImpl(
-        _ mangledName: UnsafePointer<CChar>?,
-        mangledNameLength: UInt,
-        outputBuffer: UnsafeMutablePointer<UInt8>?,
-        outputBufferSize: UnsafeMutablePointer<UInt>?,
-        flags: UInt32
-        ) -> UnsafeMutablePointer<CChar>?
-
-    @_silgen_name("__cxa_demangle")
-    func __cxa_demangle(_ mangled_name: UnsafePointer<Int8>?,
-                        output_buffer: UnsafePointer<Int8>?,
-                        length: UnsafeMutablePointer<size_t>?,
-                        status: UnsafeMutablePointer<Int32>?)
-        -> UnsafeMutablePointer<Int8>?
-
-    /// return Swif tlanguage description of symbol
-    var demangled: String? {
-        if let demangledNamePtr = _stdlib_demangleImpl(
-            self, mangledNameLength: UInt(strlen(self)),
-            outputBuffer: nil, outputBufferSize: nil, flags: 0) /*??
-            __cxa_demangle(self+1, output_buffer: nil,
-                              length: nil, status: nil)*/ {
-            let demangledName = String(cString: demangledNamePtr)
-            free(demangledNamePtr)
-            return demangledName
-        }
-        return nil
-    }
+public protocol ImageInfo {
+    var imageNumber: DLKit.ImageNumber { get }
 }
 
-public protocol ImageInfo {
-    var imageNumber: ImageSymbols.ImageNumber { get }
+extension DLKit.ImageNumber: ImageInfo {
+    public var imageNumber: Self { return self }
 }
 
 public extension ImageInfo {
@@ -163,7 +135,7 @@ public extension ImageInfo {
     }
     /// Path to image
     var imagePath: String {
-        return String(cString: imageName)
+        return FileSymbols.filePaths[imageNumber] ?? String(cString: imageName)
     }
     /// Short name for image
     var imageKey: String {
@@ -171,93 +143,3 @@ public extension ImageInfo {
     }
 }
 
-extension ImageSymbols.ImageNumber: ImageInfo {
-    public var imageNumber: Self { return self }
-}
-
-/// Abstraction for an image as operations on it's symbol table
-open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
-    /// Index into loaded images
-    public typealias ImageNumber = UInt32
-    public typealias SymbolValue = UnsafeMutableRawPointer
-    public static func == (lhs: ImageSymbols, rhs: ImageSymbols) -> Bool {
-        return lhs.imageNumber == rhs.imageNumber
-    }
-    public var description: String {
-        return "#\(imageNumber) \(imagePath) \(imageHeader)"
-    }
-
-    /// Index into loaded images
-    public let imageNumber: ImageNumber
-    /// Skip if any of these bits set in "n_type"
-    let typeMask: UInt8
-
-    /// Lazilly recovered handle returned by dlopen
-    var imageHandle: UnsafeMutableRawPointer?
-
-    public init(imageNumber: ImageNumber, typeMask: Int32 = N_STAB) {
-        self.imageNumber = imageNumber
-        self.typeMask = UInt8(typeMask)
-    }
-
-    /// Array of image numbers covered - used to represent MultiImage
-    open var imageNumbers: [ImageNumber] {
-        return [imageNumber]
-    }
-    /// List of wrapped images
-    open var imageList: [ImageSymbols] {
-        return imageNumbers.map {
-            ImageSymbols(imageNumber: $0, typeMask: Int32(typeMask)) }
-    }
-    /// Produce a map of images keyed by lastPathComponent of the imagePath
-    open var imageMap: [String: ImageSymbols] {
-        return Dictionary(uniqueKeysWithValues: imageList.map {
-            ($0.imageKey, $0)
-        })
-    }
-    /// Entries in the symbol table
-    open var entries: AnySequence<Entry> {
-        return AnySequence<Entry>(self)
-    }
-    /// Default iterator now removes debug and undefined symbols
-    open func makeIterator() -> AnyIterator<Entry> {
-        return AnyIterator(SymbolIterator(image: self))
-    }
-    /// Implement custom symbol filtering here...
-    open func skipFiltered(state: inout symbol_iterator) {
-        while state.next_symbol < state.symbol_count && typeMask != 0 && (
-            state.symbols[Int(state.next_symbol)].n_type & typeMask != 0 ||
-            state.symbols[Int(state.next_symbol)].n_sect == NO_SECT) {
-                state.next_symbol += 1
-        }
-    }
-
-    /// Determine symbol associated with mangled name.
-    /// ("self" must contain definition of or reference to symbol)
-    /// - Parameter swift: Swift language version of symbol
-    /// - Returns: Mangled version of String + value if there is one
-    open func mangle(swift: String) -> Entry? {
-        return entries.first(where: { $0.name.demangled == swift })
-    }
-    /// Swift symbols encode their type as a suffix
-    /// - Parameter withSuffixes: Suffixes to search for or none for all symbols
-    /// - Returns: Swift symbols with any of the suffixes
-    open func swiftSymbols(withSuffixes: [String]? = nil) ->[Entry] {
-        return entries.filter {
-            let (name, value) = ($0.name, $0.value)
-            guard value != nil && strncmp(name, "$s", 2) == 0 else { return false }
-            guard let suffixes = withSuffixes else { return true }
-            let symbol = String(cString: name)
-            return suffixes.first(where: { symbol.hasSuffix($0) }) != nil
-        }
-    }
-    /// Linear scan for symbols with prefix
-    open func entries(withPrefix: DLKit.SymbolName) -> [Entry] {
-        let prefixLen = strlen(withPrefix)
-        return entries.filter({ strncmp($0.name, withPrefix, prefixLen) == 0 })
-    }
-    /// Linear scan for symbol by name
-    open func entry(named: DLKit.SymbolName) -> Entry? {
-        return entries.first(where: { strcmp($0.name, named) == 0 })
-    }
-}

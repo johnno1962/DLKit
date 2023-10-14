@@ -7,7 +7,8 @@ assorted manual pages and system headers. Loaded images (the main executable
 or frameworks) are wrapped in the class `ImageSymbols` which you can use to lookup
 symbols or find the symbol at an address less than or equal to a pointer and it's
 wrapped image. ImageSymbols instances can also be iterated over in a loop
-to find all symbol definitions in that image. Think of them as dictionaries.
+to find all symbol definitions in that image. Think of them as representing
+the image/object file as bi-directional dictionaries.
 
 A couple of `ImageSymbols` subclasses represent groups of images such as
 `DLKit.allImages` for all images loaded in an application or `DLKit.appImages`
@@ -43,4 +44,4 @@ This "rebinding" works across framework boundaries or inside an application if i
 been linked with "Other Linker Flags" -Xlinker -interposable and uses facebook's
 [fishhook](https://github.com/facebook/fishhook) for rebinding indirect symbols.
 
-$Date: 2023/03/03 $
+$Date: 2023/10/14 $
