@@ -6,7 +6,7 @@
 //  Created by John Holdsworth on 14/10/2023.
 //  
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#2 $
+//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#3 $
 //
 
 import Foundation
@@ -77,10 +77,10 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     }
     /// Implement custom symbol filtering here...
     open func skipFiltered(state: inout symbol_iterator) {
-        while state.next_symbol < state.symbol_count && typeMask != 0 && (
-            state.symbols[Int(state.next_symbol)].n_type & typeMask != 0 ||
-            state.symbols[Int(state.next_symbol)].n_sect == NO_SECT) {
-                state.next_symbol += 1
+        while state.next_symbol < state.symbol_count && typeMask != 0,
+              let sym = state.symbols?.advanced(by: Int(state.next_symbol)),
+              sym.pointee.n_type & typeMask != 0 || sym.pointee.n_sect == NO_SECT {
+            state.next_symbol += 1
         }
     }
 
