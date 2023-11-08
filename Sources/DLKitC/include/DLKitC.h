@@ -11,6 +11,7 @@
 //  Provides state for a symbol table iterator.
 //
 
+#if __has_include(<mach-o/dyld.h>)
 #import <dlfcn.h>
 #import <mach-o/dyld.h>
 #import <mach-o/arch.h>
@@ -43,3 +44,4 @@ extern void init_symbol_iterator(const mach_header_t *header,
                                  struct symbol_iterator *state);
 
 extern void *self_caller_address(void);
+#endif

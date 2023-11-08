@@ -9,6 +9,7 @@
 //  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#5 $
 //
 
+#if canImport(Darwin)
 #if SWIFT_PACKAGE
 import fishhook
 #endif
@@ -134,3 +135,4 @@ extension ImageSymbols {
         }
     }
 }
+#endif

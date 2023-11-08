@@ -9,6 +9,7 @@
 //  $Id: //depot/DLKit/Sources/DLKit/FileSymbols.swift#3 $
 //
 
+#if canImport(Darwin)
 import Foundation
 #if SWIFT_PACKAGE
 import DLKitC
@@ -43,3 +44,4 @@ open class FileSymbols: ImageSymbols {
         return data.write(toFile: imagePath, atomically: true)
     }
 }
+#endif

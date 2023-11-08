@@ -11,6 +11,7 @@
 //  Provides state for a symbol table iterator.
 //
 
+#if __has_include(<mach-o/dyld.h>)
 #include "DLKitC.h"
 #include <string.h>
 
@@ -53,3 +54,4 @@ void init_symbol_iterator(const mach_header_t *header,
 void *self_caller_address(void) {
     return __builtin_return_address(2);
 }
+#endif

@@ -9,6 +9,7 @@
 //  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#3 $
 //
 
+#if canImport(Darwin)
 import Foundation
 #if SWIFT_PACKAGE
 import DLKitC
@@ -113,3 +114,4 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
         return entries.first(where: { strcmp($0.name, named) == 0 })
     }
 }
+#endif

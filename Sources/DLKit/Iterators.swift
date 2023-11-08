@@ -9,6 +9,7 @@
 //  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#21 $
 //
 
+#if canImport(Darwin)
 #if SWIFT_PACKAGE
 import DLKitC
 #endif
@@ -87,3 +88,4 @@ extension ImageSymbols: Sequence {
     public var globals: ImageSymbols {
         return RefilteredSymbols(owner: self, typeMask: N_STAB | N_PEXT) }
 }
+#endif

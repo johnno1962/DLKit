@@ -9,6 +9,7 @@
 //  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#69 $
 //
 
+#if canImport(Darwin)
 import Foundation
 #if SWIFT_PACKAGE
 import DLKitC
@@ -142,4 +143,4 @@ public extension ImageInfo {
         return URL(fileURLWithPath: imagePath).lastPathComponent
     }
 }
-
+#endif

@@ -9,6 +9,7 @@
 //  $Id: //depot/DLKit/Sources/DLKit/Demangling.swift#1 $
 //
 
+#if canImport(Darwin)
 import Foundation
 
 /// Extension for easy demangling of Swift symbols
@@ -44,4 +45,4 @@ public extension DLKit.SymbolName {
         return nil
     }
 }
-
+#endif
