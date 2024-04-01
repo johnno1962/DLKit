@@ -41,7 +41,8 @@ struct symbol_iterator {
 };
 
 extern void init_symbol_iterator(const mach_header_t *header,
-                                 struct symbol_iterator *state);
+                                 struct symbol_iterator *state,
+                                 bool isFile);
 
 extern void *self_caller_address(void);
 #endif

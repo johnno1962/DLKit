@@ -16,9 +16,11 @@
 #include <string.h>
 
 // Derived from: https://stackoverflow.com/questions/20481058/find-pathname-from-dlopen-handle-on-osx
+// Imagine trying to write this in Swift. Would it be at all clearer??
 
 void init_symbol_iterator(const mach_header_t *header,
-                          struct symbol_iterator *state) {
+                          struct symbol_iterator *state,
+                          bool isFile) {
     state->next_symbol = 0;
     segment_command_t *seg_text = NULL;
     segment_command_t *seg_linkedit = NULL;
@@ -39,7 +41,7 @@ void init_symbol_iterator(const mach_header_t *header,
             case LC_SYMTAB: {
                 symtab = (struct symtab_command *)cmd;
                 state->symbol_count = symtab->nsyms;
-                intptr_t file_slide = ((intptr_t)seg_linkedit->vmaddr -
+                intptr_t file_slide = isFile ? 0 : ((intptr_t)seg_linkedit->vmaddr -
                     (intptr_t)seg_text->vmaddr) - seg_linkedit->fileoff;
                 state->symbols = (nlist_t *)((intptr_t)header +
                                              (symtab->symoff + file_slide));

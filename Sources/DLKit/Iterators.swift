@@ -32,6 +32,7 @@ extension ImageSymbols: Sequence {
                           entry.pointee.n_type, name)+imageKey
         }
         public var symbol: String { return String(cString: name) }
+        public var offset: UInt64 { return entry.pointee.n_value }
     }
 
     struct SymbolIterator: IteratorProtocol {
@@ -39,7 +40,7 @@ extension ImageSymbols: Sequence {
         var state = symbol_iterator()
         public init(image: ImageSymbols) {
             self.owner = image
-            init_symbol_iterator(image.imageHeader, &state)
+            init_symbol_iterator(image.imageHeader, &state, image is FileSymbols)
         }
         mutating public func next() -> Element? {
             owner.skipFiltered(state: &state)

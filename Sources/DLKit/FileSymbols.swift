@@ -23,17 +23,42 @@ open class FileSymbols: ImageSymbols {
     public static var filePaths = [ImageNumber: String]()
 
     public let data: NSMutableData
+    public let base: UnsafePointer<mach_header_t>
 
     override open var imageHeader: UnsafePointer<mach_header_t> {
-        return data.bytes.assumingMemoryBound(to: mach_header_t.self)
+        return base
     }
     override open var imageList: [ImageSymbols] {
         return [self]
     }
+    
+    static func parseFAT(bytes: UnsafeRawPointer, forArch: Int32?)
+                        -> UnsafePointer<mach_header_t>? {
+        let header = bytes.assumingMemoryBound(to: fat_header.self)
+        if header.pointee.magic.bigEndian == FAT_MAGIC {
+            let archs = bytes.advanced(by: MemoryLayout<fat_header>.size)
+                .assumingMemoryBound(to: fat_arch.self)
+            for slice in 0..<Int(header.pointee.nfat_arch.bigEndian) {
+                if forArch == nil || archs[slice].cputype.bigEndian == forArch! {
+                    return bytes.advanced(by: Int(archs[slice].offset.bigEndian))
+                        .assumingMemoryBound(to: mach_header_t.self)
+                }
+            }
+        }
+        return nil
+    }
 
-    public init?(path: String, typeMask: Int32 = ImageSymbols.mask) {
+    public init?(path: String, typeMask: Int32 = ImageSymbols.mask,
+                 arch: Int32? = CPU_TYPE_ARM64) {
         guard let data = NSMutableData(contentsOfFile: path) else { return nil }
         self.data = data
+        if data.bytes.load(as: UInt32.self) == MH_MAGIC_64 {
+            base = data.bytes.assumingMemoryBound(to: mach_header_t.self)
+        } else if let slice = Self.parseFAT(bytes: data.bytes, forArch: arch) {
+            base = slice
+        } else {
+            return nil
+        }
         super.init(imageNumber: Self.fileNumber, typeMask: typeMask)
         guard imageHeader.pointee.magic == MH_MAGIC_64 else { return nil }
         Self.filePaths[Self.fileNumber] = path
