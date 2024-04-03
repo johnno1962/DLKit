@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#21 $
+//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#23 $
 //
 
 #if canImport(Darwin)
