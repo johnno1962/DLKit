@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#10 $
+//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#12 $
 //
 //  Provides state for a symbol table iterator.
 //
@@ -32,17 +32,40 @@ typedef uint32_t sectsize_t;
 #define getsectdatafromheader_f getsectdatafromheader
 #endif
 
-struct symbol_iterator {
-    int next_symbol;
-    int symbol_count;
-    nlist_t *symbols;
-    const char *strings_base;
-    intptr_t address_base;
-};
+typedef struct { const void *value; const char *name; } TrieSymbol;
+typedef void (^triecb)(const void *value, const char *name);
 
-extern void init_symbol_iterator(const mach_header_t *header,
-                                 struct symbol_iterator *state,
-                                 bool isFile);
+typedef struct {
+    const mach_header_t *header;
+    const void *image_end;
+    intptr_t file_slide;
+    
+    nlist_t *symbols;
+    uint32_t symbol_count;
+    intptr_t address_base;
+    const char *strings_base;
+    
+    const uint8_t *exports_trie;
+    uint32_t trie_size;
+    TrieSymbol *trie_symbols;
+    size_t trie_symbol_count;
+
+    segment_command_t *segments[99];
+} symbol_iterator;
 
 extern void *self_caller_address(void);
+extern void init_symbol_iterator(const mach_header_t *header,
+                                 symbol_iterator *state,
+                                 bool isFile);
+
+#ifndef DLKit_C
+#import <Foundation/Foundation.h>
+extern NSArray<NSString *> *trie_stackSymbols();
+#endif
+extern int trie_dladdr(const void *value, Dl_info *info);
+extern const symbol_iterator *trie_iterator(const void *header);
+extern void trie_register(const char *path, const mach_header_t *header);
+extern const void *exportsLookup(const symbol_iterator *state, const char *symbol);
+extern const int exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
+                                     const char *buffer, char *bptr, triecb cb);
 #endif

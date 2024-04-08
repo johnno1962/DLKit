@@ -6,13 +6,13 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#71 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#72 $
 //
 
 #if canImport(Darwin)
 import Foundation
 #if SWIFT_PACKAGE
-import DLKitC
+@_exported import DLKitC
 #endif
 
 /// Interface to symbols of dynamically loaded images (executable or frameworks).

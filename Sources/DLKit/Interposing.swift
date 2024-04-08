@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#9 $
+//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#12 $
 //
 
 #if canImport(Darwin)
@@ -92,10 +92,8 @@ extension ImageSymbols {
     public subscript (ptr: SymbolValue)
         -> (name: DLKit.SymbolName?, image: ImageSymbols)? {
         var info = Dl_info()
-        guard dladdr(ptr, &info) != 0,
-              let index = info.dli_fname == imageNumber.imageName ||
-                strcmp(info.dli_fname, imageNumber.imageName) == 0 ?
-                imageNumber : imageNumbers.first(where: {
+        guard trie_dladdr(ptr, &info) != 0,
+              let index = imageNumbers.first(where: {
                     info.dli_fname == $0.imageName }) ??
                 imageNumbers.first(where: {
                     strcmp(info.dli_fname, $0.imageName) == 0

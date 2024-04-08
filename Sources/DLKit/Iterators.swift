@@ -6,13 +6,10 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#23 $
+//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#25 $
 //
 
 #if canImport(Darwin)
-#if SWIFT_PACKAGE
-import DLKitC
-#endif
 
 /// Extend Image wrapper to be iterable over the symbols defined
 extension ImageSymbols: Sequence {
@@ -35,18 +32,19 @@ extension ImageSymbols: Sequence {
         public var offset: UInt64 { return entry.pointee.n_value }
     }
 
-    struct SymbolIterator: IteratorProtocol {
+    public struct SymbolIterator: IteratorProtocol {
         let owner: ImageSymbols
         var state = symbol_iterator()
+        var next_symbol = 0;
         public init(image: ImageSymbols) {
             self.owner = image
             init_symbol_iterator(image.imageHeader, &state, image is FileSymbols)
         }
         mutating public func next() -> Element? {
-            owner.skipFiltered(state: &state)
-            guard state.next_symbol < state.symbol_count else { return nil }
-            let symbol = state.symbols.advanced(by: Int(state.next_symbol))
-            state.next_symbol += 1
+            owner.skipFiltered(iterator: &self)
+            guard next_symbol < state.symbol_count else { return nil }
+            let symbol = state.symbols.advanced(by: next_symbol)
+            next_symbol += 1
             return Entry(imageNumber: owner.imageNumber,
                 name: state.strings_base + 1 +
                     Int(symbol.pointee.n_un.n_strx),

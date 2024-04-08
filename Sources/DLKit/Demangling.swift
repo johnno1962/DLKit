@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Demangling.swift#2 $
+//  $Id: //depot/DLKit/Sources/DLKit/Demangling.swift#4 $
 //
 
 #if canImport(Darwin)
@@ -35,14 +35,20 @@ public extension DLKit.SymbolName {
     var demangled: String? {
         if let demangledNamePtr = _stdlib_demangleImpl(
             self, mangledNameLength: UInt(strlen(self)),
-            outputBuffer: nil, outputBufferSize: nil, flags: 0) /*??
+            outputBuffer: nil, outputBufferSize: nil, flags: 0) ??
             __cxa_demangle(self+1, output_buffer: nil,
-                              length: nil, status: nil)*/ {
+                              length: nil, status: nil) {
             let demangledName = String(cString: demangledNamePtr)
             free(demangledNamePtr)
             return demangledName
         }
         return nil
+    }
+}
+
+extension String {
+    public var swiftDemangle: String? {
+        return withCString { $0.demangled }
     }
 }
 #endif

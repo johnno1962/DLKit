@@ -6,14 +6,11 @@
 //  Created by John Holdsworth on 14/10/2023.
 //  
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#4 $
+//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#6 $
 //
 
 #if canImport(Darwin)
 import Foundation
-#if SWIFT_PACKAGE
-import DLKitC
-#endif
 
 /// Abstraction for an image as operations on it's symbol table
 open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
@@ -77,11 +74,11 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
         return AnyIterator(SymbolIterator(image: self))
     }
     /// Implement custom symbol filtering here...
-    open func skipFiltered(state: inout symbol_iterator) {
-        while state.next_symbol < state.symbol_count && typeMask != 0,
-              let sym = state.symbols?.advanced(by: Int(state.next_symbol)),
+    open func skipFiltered(iterator: inout SymbolIterator) {
+        while iterator.next_symbol < iterator.state.symbol_count && typeMask != 0,
+              let sym = iterator.state.symbols?.advanced(by: iterator.next_symbol),
               sym.pointee.n_type & typeMask != 0 || sym.pointee.n_sect == NO_SECT {
-            state.next_symbol += 1
+            iterator.next_symbol += 1
         }
     }
 
@@ -112,6 +109,25 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     /// Linear scan for symbol by name
     open func entry(named: DLKit.SymbolName) -> Entry? {
         return entries.first(where: { strcmp($0.name, named) == 0 })
+    }
+    
+    open func trieSymbols() -> [TrieSymbol]? {
+        guard let iterator = trie_iterator(imageHeader),
+              let trie_symbols = iterator.pointee.trie_symbols else { return nil }
+        return Array(unsafeUninitializedCapacity: iterator.pointee.trie_symbol_count,
+                     initializingWith: { buffer, initializedCount in
+            let bytesToCopy =
+                iterator.pointee.trie_symbol_count*MemoryLayout<TrieSymbol>.stride
+            memcpy(buffer.baseAddress, trie_symbols, bytesToCopy)
+            initializedCount = iterator.pointee.trie_symbol_count
+        })
+    }
+}
+
+extension TrieSymbol: CustomStringConvertible {
+    public var description: String {
+        return "\(value != nil ? "\(value!)" : "nil"): " +
+            (name.demangled ?? String(cString: name))
     }
 }
 #endif

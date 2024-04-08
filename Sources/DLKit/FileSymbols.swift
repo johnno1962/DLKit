@@ -6,14 +6,11 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/FileSymbols.swift#4 $
+//  $Id: //depot/DLKit/Sources/DLKit/FileSymbols.swift#6 $
 //
 
 #if canImport(Darwin)
 import Foundation
-#if SWIFT_PACKAGE
-import DLKitC
-#endif
 
 open class FileSymbols: ImageSymbols {
 
@@ -23,10 +20,10 @@ open class FileSymbols: ImageSymbols {
     public static var filePaths = [ImageNumber: String]()
 
     public let data: NSMutableData
-    public let base: UnsafePointer<mach_header_t>
+    public let header: UnsafePointer<mach_header_t>
 
     override open var imageHeader: UnsafePointer<mach_header_t> {
-        return base
+        return header
     }
     override open var imageList: [ImageSymbols] {
         return [self]
@@ -53,20 +50,21 @@ open class FileSymbols: ImageSymbols {
         guard let data = NSMutableData(contentsOfFile: path) else { return nil }
         self.data = data
         if data.bytes.load(as: UInt32.self) == MH_MAGIC_64 {
-            base = data.bytes.assumingMemoryBound(to: mach_header_t.self)
+            header = data.bytes.assumingMemoryBound(to: mach_header_t.self)
         } else if let slice = Self.parseFAT(bytes: data.bytes, forArch: arch) {
-            base = slice
+            header = slice
         } else {
             return nil
         }
         super.init(imageNumber: Self.fileNumber, typeMask: typeMask)
         guard imageHeader.pointee.magic == MH_MAGIC_64 else { return nil }
         Self.filePaths[Self.fileNumber] = path
+        trie_register(path, header)
         Self.fileNumber += 1
     }
 
-    open func save() -> Bool {
-        return data.write(toFile: imagePath, atomically: true)
+    open func save(to path: String) -> Bool {
+        return data.write(toFile: path, atomically: true)
     }
 }
 #endif
