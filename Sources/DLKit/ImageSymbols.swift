@@ -6,7 +6,7 @@
 //  Created by John Holdsworth on 14/10/2023.
 //  
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#6 $
+//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#8 $
 //
 
 #if canImport(Darwin)
@@ -61,9 +61,11 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     }
     /// Produce a map of images keyed by lastPathComponent of the imagePath
     open var imageMap: [String: ImageSymbols] {
-        return Dictionary(uniqueKeysWithValues: imageList.map {
+        return Dictionary(imageList.map {
             ($0.imageKey, $0)
-        })
+        }, uniquingKeysWith: { (first, last) in
+            print("ℹ️DLKit: Duplicate framework key \(first) c.f. \(last)")
+            return last })
     }
     /// Entries in the symbol table
     open var entries: AnySequence<Entry> {
