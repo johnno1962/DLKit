@@ -83,7 +83,7 @@ const void *exportsLookup(const symbol_iterator *state, const char *symbol) {
                 return nullptr;
         }
         if ( (*symbol == '\0') && (terminalSize != 0) ) {
-            uint64_t flags = read_uleb128(p, end, malformed);
+            (void)read_uleb128(p, end, malformed);
             uint64_t offset = read_uleb128(p, end, malformed);
             return (char *)state->header + offset;
         }

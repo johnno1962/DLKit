@@ -52,8 +52,7 @@ public:
             }
         });
         free(buffer);
-        sort(symbols.begin(), symbols.end());
-
+        
         /// Fold in any other legacy symbols found
         for (int sno=0; sno < state.symbol_count; sno++) {
             TrieSymbol entry;
@@ -67,6 +66,15 @@ public:
 
         sort(symbols.begin(), symbols.end());
         
+        #if VERIFY_DLADDR
+        int i=0;
+        for (auto &s : symbols) {
+            void *v = dlsym(RTLD_DEFAULT, s.name+1);
+            if (s.value != v && v)
+                printf("%d %d %p %p %s\n", symbols.size(), i++, s.value, v, strrchr(path, '/'));
+        }
+        #endif
+
         state.trie_symbols = symbols.data();
         state.trie_symbol_count = symbols.size();
     }
