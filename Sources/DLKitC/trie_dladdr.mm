@@ -6,7 +6,7 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#2 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#3 $
 //
 //  dladdr able to resolve symbols from "exports trie".
 //
@@ -18,7 +18,7 @@ extern "C" {
 #include <vector>
 #include <map>
 
-template<typename T> static ptrdiff_t equalOrGreater(std::vector<T> &array, T &value) {
+template<typename T> static ptrdiff_t equalOrGreater(const std::vector<T> &array, T &value) {
     auto it = upper_bound(array.begin(), array.end(), value);
     if (it == array.end())
         return -2;
@@ -42,14 +42,14 @@ public:
     void trie_populate() {
         /// not initialised, add symbols found in "exports trie"
         char *buffer = (char *)malloc(1000000);
-        __block std::map<const void *,TrieSymbol> exists;
+        __block std::map<const void *,const char *> exists;
         exportsTrieTraverse(&state, state.exports_trie, buffer, buffer,
                             ^(const void *value, const char *name) {
+            if (exists[value])
+                return;
             TrieSymbol entry = {value, strdup(name)};
-            if (exists.find(entry.value) == exists.end()) {
-                exists[entry.value] = entry;
-                symbols.push_back(entry);
-            }
+            exists[entry.value] = entry.name;
+            symbols.push_back(entry);
         });
         free(buffer);
         
@@ -57,14 +57,17 @@ public:
         for (int sno=0; sno < state.symbol_count; sno++) {
             TrieSymbol entry;
             entry.value = (char *)state.address_base + state.symbols[sno].n_value;
-            if (exists.find(entry.value) == exists.end()) {
-                entry.name = state.strings_base + state.symbols[sno].n_un.n_strx;
-                exists[entry.value] = entry;
-                symbols.push_back(entry);
-            }
+            if (exists[entry.value])
+                continue;
+            entry.name = state.strings_base + state.symbols[sno].n_un.n_strx;
+            exists[entry.value] = entry.name;
+            symbols.push_back(entry);
         }
 
         sort(symbols.begin(), symbols.end());
+
+        state.trie_symbols = symbols.data();
+        state.trie_symbol_count = symbols.size();
         
         #if VERIFY_DLADDR
         int i=0;
@@ -74,9 +77,6 @@ public:
                 printf("%d %d %p %p %s\n", symbols.size(), i++, s.value, v, strrchr(path, '/'));
         }
         #endif
-
-        state.trie_symbols = symbols.data();
-        state.trie_symbol_count = symbols.size();
     }
 };
 
@@ -95,7 +95,7 @@ void trie_register(const char *path, const mach_header_t *header) {
     sort(image_store.begin(), image_store.end());
 }
 
-static ImageSymbols *trie_symbols(const void *ptr) {
+static const ImageSymbols *trie_symbols(const void *ptr) {
     /// Maintain data for all loaded images
     if (image_store.size() < _dyld_image_count()) {
         for (uint32_t i=(uint32_t)image_store.size(); i<_dyld_image_count(); i++) {
@@ -122,13 +122,13 @@ static ImageSymbols *trie_symbols(const void *ptr) {
 }
 
 const symbol_iterator *trie_iterator(const void *header) {
-    if (ImageSymbols *store = trie_symbols(header))
+    if (const ImageSymbols *store = trie_symbols(header))
         return &store->state;
     return nullptr;
 }
 
 int trie_dladdr(const void *ptr, Dl_info *info) {
-    ImageSymbols *store = trie_symbols(ptr);
+    const ImageSymbols *store = trie_symbols(ptr);
     if (!store)
         return 0;
 
@@ -140,7 +140,7 @@ int trie_dladdr(const void *ptr, Dl_info *info) {
         return 0;
 
     /// Populate Dl_info output struct
-    TrieSymbol &entry = store->symbols[found];
+    const TrieSymbol &entry = store->symbols[found];
     info->dli_fbase = const_cast<void *>(store->header);
     info->dli_fname = store->path;
     info->dli_saddr = const_cast<void *>(entry.value);
