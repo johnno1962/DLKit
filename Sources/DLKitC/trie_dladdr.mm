@@ -6,9 +6,9 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#3 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#5 $
 //
-//  dladdr able to resolve symbols from "exports trie".
+//  dladdr() able to resolve symbols from "exports trie".
 //
 
 #if __has_include(<mach-o/dyld.h>)
@@ -17,13 +17,6 @@ extern "C" {
 }
 #include <vector>
 #include <map>
-
-template<typename T> static ptrdiff_t equalOrGreater(const std::vector<T> &array, T &value) {
-    auto it = upper_bound(array.begin(), array.end(), value);
-    if (it == array.end())
-        return -2;
-    return distance(array.begin(), it)-1;
-}
 
 class ImageSymbols {
 public:
@@ -41,7 +34,7 @@ public:
     }
     void trie_populate() {
         /// not initialised, add symbols found in "exports trie"
-        char *buffer = (char *)malloc(1000000);
+        char *buffer = (char *)malloc(state.trie_size);
         __block std::map<const void *,const char *> exists;
         exportsTrieTraverse(&state, state.exports_trie, buffer, buffer,
                             ^(const void *value, const char *name) {
@@ -88,6 +81,14 @@ static bool operator < (const TrieSymbol &s1, const TrieSymbol &s2) {
     return s1.value < s2.value;
 }
 
+template<typename T> static ptrdiff_t equalOrGreater(
+                    const std::vector<T> &array, T &value) {
+    auto it = upper_bound(array.begin(), array.end(), value);
+    if (it == array.end())
+        return -2;
+    return distance(array.begin(), it)-1;
+}
+
 static std::vector<ImageSymbols> image_store;
 
 void trie_register(const char *path, const mach_header_t *header) {
@@ -129,8 +130,13 @@ const symbol_iterator *trie_iterator(const void *header) {
 
 int trie_dladdr(const void *ptr, Dl_info *info) {
     const ImageSymbols *store = trie_symbols(ptr);
+    info->dli_fname = "Image not found";
+    info->dli_sname = "Symbol not found";
     if (!store)
         return 0;
+
+    info->dli_fbase = const_cast<void *>(store->header);
+    info->dli_fname = store->path;
 
     /// Find actual symbol
     TrieSymbol finder;
@@ -141,8 +147,6 @@ int trie_dladdr(const void *ptr, Dl_info *info) {
 
     /// Populate Dl_info output struct
     const TrieSymbol &entry = store->symbols[found];
-    info->dli_fbase = const_cast<void *>(store->header);
-    info->dli_fname = store->path;
     info->dli_saddr = const_cast<void *>(entry.value);
     info->dli_sname = entry.name;
     if (*info->dli_sname == '_')

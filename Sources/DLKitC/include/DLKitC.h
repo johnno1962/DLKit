@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#12 $
+//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#14 $
 //
 //  Provides state for a symbol table iterator.
 //
@@ -66,6 +66,6 @@ extern int trie_dladdr(const void *value, Dl_info *info);
 extern const symbol_iterator *trie_iterator(const void *header);
 extern void trie_register(const char *path, const mach_header_t *header);
 extern const void *exportsLookup(const symbol_iterator *state, const char *symbol);
-extern const int exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
-                                     const char *buffer, char *bptr, triecb cb);
+extern const void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
+                                       const char *buffer, char *bptr, triecb cb);
 #endif

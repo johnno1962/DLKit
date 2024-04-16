@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Tests/DLKitTests/DLKitTests.swift#12 $
+//  $Id: //depot/DLKit/Tests/DLKitTests/DLKitTests.swift#14 $
 //
 
 import XCTest
@@ -56,6 +56,9 @@ final class DLKitTests: XCTestCase {
         XCTAssertEqual(image, testImage, "Images equal")
         XCTAssertEqual(String(cString: name!),
                        mangledTestClassSymbol, "Symbol names equal")
+
+//        let sui = DLKit.imageMap["SwiftUI"]!
+//        XCTAssert(Array(sui.entries).count < sui.trieSymbols()!.count)
     }
 
     static var allTests = [

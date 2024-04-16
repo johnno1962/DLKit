@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/DLKitC.c#16 $
+//  $Id: //depot/DLKit/Sources/DLKitC/DLKitC.c#17 $
 //
 //  Provides state for a symbol table iterator.
 //
@@ -55,9 +55,8 @@ void init_symbol_iterator(const mach_header_t *header,
             case LC_SYMTAB: {
                 symtab = (struct symtab_command *)cmd;
                 state->symbol_count = symtab->nsyms;
-                uint64_t file_slide = ((intptr_t)seg_linkedit->vmaddr -
+                state->file_slide = isFile ? 0 : ((intptr_t)seg_linkedit->vmaddr -
                     (intptr_t)seg_text->vmaddr) - seg_linkedit->fileoff;
-                state->file_slide = isFile ? 0 : file_slide;
                 state->symbols = (nlist_t *)((intptr_t)header +
                                              (symtab->symoff + state->file_slide));
                 state->strings_base = (const char *)header +
