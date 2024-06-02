@@ -6,12 +6,13 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dlops.mm#7 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dlops.mm#8 $
 //
 //  Lookup/traversal of symbols in "exports trie" for trie_dladdr().
 //
 //
 
+#if DEBUG || !DEBUG_ONLY
 #if __has_include(<mach-o/dyld.h>)
 extern "C" {
 #import "DLKitC.h"
@@ -177,4 +178,5 @@ const void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
     }
     return nullptr;
 }
+#endif
 #endif

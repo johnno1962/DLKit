@@ -6,12 +6,17 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#12 $
+//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#14 $
 //
 
+#if DEBUG || !DEBUG_ONLY
 #if canImport(Darwin)
 #if SWIFT_PACKAGE
+#if DEBUG_ONLY
+import fishhookD
+#else
 import fishhook
+#endif
 #endif
 
 internal extension UnsafeMutablePointer {
@@ -135,4 +140,5 @@ extension ImageSymbols {
         }
     }
 }
+#endif
 #endif

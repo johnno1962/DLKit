@@ -6,13 +6,18 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#72 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#73 $
 //
 
+#if DEBUG || !DEBUG_ONLY
 #if canImport(Darwin)
 import Foundation
 #if SWIFT_PACKAGE
+#if DEBUG_ONLY
+@_exported import DLKitCD
+#else
 @_exported import DLKitC
+#endif
 #endif
 
 /// Interface to symbols of dynamically loaded images (executable or frameworks).
@@ -143,4 +148,5 @@ public extension ImageInfo {
         return URL(fileURLWithPath: imagePath).lastPathComponent
     }
 }
+#endif
 #endif

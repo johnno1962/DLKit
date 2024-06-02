@@ -6,11 +6,12 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#5 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#6 $
 //
 //  dladdr() able to resolve symbols from "exports trie".
 //
 
+#if DEBUG || !DEBUG_ONLY
 #if __has_include(<mach-o/dyld.h>)
 extern "C" {
 #import "DLKitC.h"
@@ -167,4 +168,5 @@ NSArray<NSString *> *trie_stackSymbols() {
     }
     return out;
 }
+#endif
 #endif

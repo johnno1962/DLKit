@@ -6,9 +6,10 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/FileSymbols.swift#6 $
+//  $Id: //depot/DLKit/Sources/DLKit/FileSymbols.swift#7 $
 //
 
+#if DEBUG || !DEBUG_ONLY
 #if canImport(Darwin)
 import Foundation
 
@@ -67,4 +68,5 @@ open class FileSymbols: ImageSymbols {
         return data.write(toFile: path, atomically: true)
     }
 }
+#endif
 #endif

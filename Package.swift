@@ -13,12 +13,18 @@ let package = Package(
         .library(
             name: "DLKitC",
             targets: ["DLKitC"]),
+        .library(
+            name: "DLKitD",
+            targets: ["DLKitD"]),
+        .library(
+            name: "DLKitCD",
+            targets: ["DLKitCD"]),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/johnno1962/fishhook",
-                 .upToNextMinor(from: "1.1.1")),
+                 .upToNextMinor(from: "1.2.0")),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -29,6 +35,14 @@ let package = Package(
         .target(
             name: "DLKitC",
             dependencies: []),
+        .target(
+            name: "DLKitD",
+            dependencies: ["DLKitCD", .product(name: "fishhookD", package: "fishhook")],
+            swiftSettings: [.define("DEBUG_ONLY")]),
+        .target(
+            name: "DLKitCD",
+            dependencies: [.product(name: "fishhookD", package: "fishhook")],
+            cSettings: [.define("DEBUG_ONLY")]),
         .testTarget(
             name: "DLKitTests",
             dependencies: ["DLKit"]),

@@ -6,9 +6,10 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#25 $
+//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#26 $
 //
 
+#if DEBUG || !DEBUG_ONLY
 #if canImport(Darwin)
 
 /// Extend Image wrapper to be iterable over the symbols defined
@@ -87,4 +88,5 @@ extension ImageSymbols: Sequence {
     public var globals: ImageSymbols {
         return RefilteredSymbols(owner: self, typeMask: N_STAB | N_PEXT) }
 }
+#endif
 #endif

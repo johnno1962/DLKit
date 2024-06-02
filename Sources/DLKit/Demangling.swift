@@ -6,9 +6,10 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Demangling.swift#4 $
+//  $Id: //depot/DLKit/Sources/DLKit/Demangling.swift#5 $
 //
 
+#if DEBUG || !DEBUG_ONLY
 #if canImport(Darwin)
 import Foundation
 
@@ -51,4 +52,5 @@ extension String {
         return withCString { $0.demangled }
     }
 }
+#endif
 #endif

@@ -6,9 +6,10 @@
 //  Created by John Holdsworth on 14/10/2023.
 //  
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#8 $
+//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#9 $
 //
 
+#if DEBUG || !DEBUG_ONLY
 #if canImport(Darwin)
 import Foundation
 
@@ -132,4 +133,5 @@ extension TrieSymbol: CustomStringConvertible {
             (name.demangled ?? String(cString: name))
     }
 }
+#endif
 #endif
