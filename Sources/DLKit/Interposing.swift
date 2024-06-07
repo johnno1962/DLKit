@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#14 $
+//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#15 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -93,17 +93,24 @@ extension ImageSymbols {
 
 // Weird subscripting api.
 extension ImageSymbols {
+    public struct DLKInfo {
+        public let info: Dl_info
+        public var name: DLKit.SymbolName { info.dli_sname }
+        public var addr: SymbolValue { info.dli_saddr }
+        public var owner: ImageSymbols
+        public var image: ImageSymbols? {
+            return (owner.imageNumbers.first(where: {
+                        info.dli_fname == $0.imageName }) ??
+                    owner.imageNumbers.first(where: {
+                        strcmp(info.dli_fname, $0.imageName) == 0 })
+                ).flatMap { ImageSymbols(imageNumber: $0) }
+        }
+    }
     /// Inverse lookup returning image symbol name and wrapped image for an address.
-    public subscript (ptr: SymbolValue)
-        -> (name: DLKit.SymbolName?, image: ImageSymbols)? {
+    public subscript (ptr: SymbolValue) -> DLKInfo? {
         var info = Dl_info()
-        guard trie_dladdr(ptr, &info) != 0,
-              let index = imageNumbers.first(where: {
-                    info.dli_fname == $0.imageName }) ??
-                imageNumbers.first(where: {
-                    strcmp(info.dli_fname, $0.imageName) == 0
-                }) else { return nil }
-        return (info.dli_sname, ImageSymbols(imageNumber: index))
+        guard trie_dladdr(ptr, &info) != 0 else { return nil }
+        return DLKInfo(info: info, owner: self)
     }
     /// Loook up an individual symbol by name
     public subscript (name: DLKit.SymbolName) -> SymbolValue? {
@@ -113,10 +120,10 @@ extension ImageSymbols {
     /// Loook up an array of symbols
     public subscript (names: [DLKit.SymbolName]) -> [SymbolValue?] {
         get {
-            let handle = imageHandle ??
-                dlopen(imageName, RTLD_LAZY)
-            imageHandle = handle
-            return names.map {dlsym(handle, $0)}
+            if imageHandle == nil {
+                imageHandle = dlopen(imageName, RTLD_LAZY)
+            }
+            return names.map {dlsym(imageHandle, $0)}
         }
         set (newValue) {
             /// Use fishhook to replace references to the named symbol with new values

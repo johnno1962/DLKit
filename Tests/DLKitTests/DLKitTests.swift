@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Tests/DLKitTests/DLKitTests.swift#14 $
+//  $Id: //depot/DLKit/Tests/DLKitTests/DLKitTests.swift#15 $
 //
 
 import XCTest
@@ -49,12 +49,12 @@ final class DLKitTests: XCTestCase {
             return
         }
         XCTAssertEqual(pointer1, pointer2, "Pointers equal")
-        guard let (name, image) = DLKit.allImages[pointer2] else {
+        guard let info = DLKit.allImages[pointer2] else {
             XCTFail("Reverse lookup fails")
             return
         }
-        XCTAssertEqual(image, testImage, "Images equal")
-        XCTAssertEqual(String(cString: name!),
+        XCTAssertEqual(info.image, testImage, "Images equal")
+        XCTAssertEqual(String(cString: info.name),
                        mangledTestClassSymbol, "Symbol names equal")
 
 //        let sui = DLKit.imageMap["SwiftUI"]!

@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#73 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#74 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -42,7 +42,7 @@ public struct DLKit {
     }
     /// Image of code referencing this property
     public static var selfImage: ImageSymbols {
-        return allImages[self_caller_address()!]!.image
+        return allImages[self_caller_address()!]!.image!
     }
     /// List of all loaded images in order
     public static var imageList: [ImageSymbols] {
