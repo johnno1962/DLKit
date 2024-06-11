@@ -34,7 +34,7 @@ let package = Package(
             dependencies: ["DLKitC", "fishhook"]),
         .target(
             name: "DLKitC",
-            dependencies: []),
+            linkerSettings: [.linkedFramework("Foundation")]),
         .target(
             name: "DLKitD",
             dependencies: ["DLKitCD", .product(name: "fishhookD", package: "fishhook")],
@@ -42,7 +42,8 @@ let package = Package(
         .target(
             name: "DLKitCD",
             dependencies: [.product(name: "fishhookD", package: "fishhook")],
-            cSettings: [.define("DEBUG_ONLY")]),
+            cSettings: [.define("DEBUG_ONLY")],
+            linkerSettings: [.linkedFramework("Foundation")]),
         .testTarget(
             name: "DLKitTests",
             dependencies: ["DLKit"]),
