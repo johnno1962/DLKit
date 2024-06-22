@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#74 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#75 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -92,7 +92,8 @@ public struct DLKit {
                     (strstr(imageName, "/DerivedData/") != nil &&
                      strstr(imageName, ".framework/") != nil) ||
                     strstr(imageName, ".xctest/") != nil ||
-                    strstr(imageName, "/eval") != nil
+                    strstr(imageName, "/eval") != nil ||
+                    strstr(imageName, ".debug.dylib") != nil // Xcode16
             }
         }
     }

@@ -6,7 +6,7 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dlops.mm#8 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dlops.mm#9 $
 //
 //  Lookup/traversal of symbols in "exports trie" for trie_dladdr().
 //
@@ -14,9 +14,8 @@
 
 #if DEBUG || !DEBUG_ONLY
 #if __has_include(<mach-o/dyld.h>)
-extern "C" {
+#import <Foundation/Foundation.h>
 #import "DLKitC.h"
-}
 #import <vector>
 
 // Derived from https://github.com/apple-oss-distributions/dyld/blob/main/common/MachOFile.cpp#L2768

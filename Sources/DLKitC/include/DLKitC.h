@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#14 $
+//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#15 $
 //
 //  Provides state for a symbol table iterator.
 //
@@ -53,14 +53,18 @@ typedef struct {
     segment_command_t *segments[99];
 } symbol_iterator;
 
+#if __cplusplus
+extern "C" {
+#endif
 extern void *self_caller_address(void);
 extern void init_symbol_iterator(const mach_header_t *header,
                                  symbol_iterator *state,
                                  bool isFile);
 
 #ifndef DLKit_C
-#import <Foundation/Foundation.h>
-extern NSArray<NSString *> *trie_stackSymbols();
+//#import <Foundation/Foundation.h>
+@class NSArray, NSString;
+extern NSArray/*<NSString *>*/ *trie_stackSymbols();
 #endif
 extern int trie_dladdr(const void *value, Dl_info *info);
 extern const symbol_iterator *trie_iterator(const void *header);
@@ -68,4 +72,7 @@ extern void trie_register(const char *path, const mach_header_t *header);
 extern const void *exportsLookup(const symbol_iterator *state, const char *symbol);
 extern const void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
                                        const char *buffer, char *bptr, triecb cb);
+#endif
+#if __cplusplus
+}
 #endif

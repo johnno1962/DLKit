@@ -6,16 +6,15 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#6 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#7 $
 //
 //  dladdr() able to resolve symbols from "exports trie".
 //
 
 #if DEBUG || !DEBUG_ONLY
 #if __has_include(<mach-o/dyld.h>)
-extern "C" {
+#import <Foundation/Foundation.h>
 #import "DLKitC.h"
-}
 #include <vector>
 #include <map>
 
@@ -155,7 +154,7 @@ int trie_dladdr(const void *ptr, Dl_info *info) {
     return 1;
 }
 
-NSArray<NSString *> *trie_stackSymbols() {
+NSArray/*<NSString *>*/ *trie_stackSymbols() {
     NSMutableArray *out = [NSMutableArray new];
     Dl_info info;
     for (NSValue *caller in [NSThread callStackReturnAddresses]) {
