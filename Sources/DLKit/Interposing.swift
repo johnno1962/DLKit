@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#15 $
+//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#16 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -106,11 +106,15 @@ extension ImageSymbols {
                 ).flatMap { ImageSymbols(imageNumber: $0) }
         }
     }
+    /// Address lookup returning image symbol name and wrapped image for an address.
+    public func getInfo(address: SymbolValue) -> DLKInfo? {
+        var info = Dl_info()
+        guard trie_dladdr(address, &info) != 0 else { return nil }
+        return DLKInfo(info: info, owner: self)
+    }
     /// Inverse lookup returning image symbol name and wrapped image for an address.
     public subscript (ptr: SymbolValue) -> DLKInfo? {
-        var info = Dl_info()
-        guard trie_dladdr(ptr, &info) != 0 else { return nil }
-        return DLKInfo(info: info, owner: self)
+        return getInfo(address: ptr)
     }
     /// Loook up an individual symbol by name
     public subscript (name: DLKit.SymbolName) -> SymbolValue? {
