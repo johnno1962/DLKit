@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#75 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#76 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -113,6 +113,14 @@ public struct DLKit {
             imageHandle = DLKit.RTLD_MAIN_ONLY
         }
     }
+}
+
+@_cdecl("DLKit_appImagesContain")
+public func appImagesContain(symbol: UnsafePointer<CChar>) -> UnsafeMutableRawPointer? {
+    return DLKit.appImages.imageList.compactMap {
+        trie_dlsym($0.imageHeader, symbol) }.first
+//    return DLKit.appImages.imageList.compactMap {
+//        $0.entry(named: symbol) }.first?.value
 }
 
 public protocol ImageInfo {

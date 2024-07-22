@@ -6,7 +6,7 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#7 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#8 $
 //
 //  dladdr() able to resolve symbols from "exports trie".
 //
@@ -30,11 +30,11 @@ public:
         this->path = path;
         this->header = header;
         this->isFile = isFile;
-        memset(&this->state, 0, sizeof this->state);
+        memset(&state, 0, sizeof state);
     }
     void trie_populate() {
         /// not initialised, add symbols found in "exports trie"
-        char *buffer = (char *)malloc(state.trie_size);
+        char *buffer = (char *)malloc(state.trie_size+1);
         __block std::map<const void *,const char *> exists;
         exportsTrieTraverse(&state, state.exports_trie, buffer, buffer,
                             ^(const void *value, const char *name) {
@@ -50,7 +50,7 @@ public:
         for (int sno=0; sno < state.symbol_count; sno++) {
             TrieSymbol entry;
             entry.value = (char *)state.address_base + state.symbols[sno].n_value;
-            if (exists[entry.value])
+            if (state.symbols[sno].n_sect == NO_SECT || exists[entry.value])
                 continue;
             entry.name = state.strings_base + state.symbols[sno].n_un.n_strx;
             exists[entry.value] = entry.name;
@@ -152,6 +152,12 @@ int trie_dladdr(const void *ptr, Dl_info *info) {
     if (*info->dli_sname == '_')
         info->dli_sname++;
     return 1;
+}
+
+void *trie_dlsym(const mach_header_t *image, const char *symbol) {
+    if (const ImageSymbols *store = trie_symbols(image))
+        return (void *)exportsLookup(&store->state, symbol);
+    return nullptr;
 }
 
 NSArray/*<NSString *>*/ *trie_stackSymbols() {

@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#15 $
+//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#16 $
 //
 //  Provides state for a symbol table iterator.
 //
@@ -67,6 +67,7 @@ extern void init_symbol_iterator(const mach_header_t *header,
 extern NSArray/*<NSString *>*/ *trie_stackSymbols();
 #endif
 extern int trie_dladdr(const void *value, Dl_info *info);
+extern void *trie_dlsym(const mach_header_t *image, const char *symbol);
 extern const symbol_iterator *trie_iterator(const void *header);
 extern void trie_register(const char *path, const mach_header_t *header);
 extern const void *exportsLookup(const symbol_iterator *state, const char *symbol);
