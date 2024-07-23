@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#76 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#77 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -14,7 +14,9 @@
 import Foundation
 #if SWIFT_PACKAGE
 #if DEBUG_ONLY
+#if canImport(DLKitCD)
 @_exported import DLKitCD
+#endif
 #else
 @_exported import DLKitC
 #endif
