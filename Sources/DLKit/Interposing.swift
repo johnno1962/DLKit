@@ -97,7 +97,7 @@ extension ImageSymbols {
 extension ImageSymbols {
     public struct DLKInfo {
         public let info: Dl_info
-        public var name: DLKit.SymbolName { info.dli_sname }
+        public var name: DLKit.SymbolName! { info.dli_sname }
         public var addr: SymbolValue { info.dli_saddr }
         public var owner: ImageSymbols
         public var image: ImageSymbols? {
