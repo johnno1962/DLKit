@@ -64,7 +64,7 @@ extern void init_symbol_iterator(const mach_header_t *header,
 #ifndef DLKit_C
 //#import <Foundation/Foundation.h>
 @class NSArray, NSString;
-extern NSArray/*<NSString *>*/ *trie_stackSymbols();
+extern NSArray/* <NSString *>*/ *trie_stackSymbols();
 #endif
 extern int trie_dladdr(const void *value, Dl_info *info);
 extern void *trie_dlsym(const mach_header_t *image, const char *symbol);

@@ -160,7 +160,7 @@ void *trie_dlsym(const mach_header_t *image, const char *symbol) {
     return nullptr;
 }
 
-NSArray/*<NSString *>*/ *trie_stackSymbols() {
+NSArray/* <NSString *>*/ *trie_stackSymbols() {
     NSMutableArray *out = [NSMutableArray new];
     Dl_info info;
     for (NSValue *caller in [NSThread callStackReturnAddresses]) {
