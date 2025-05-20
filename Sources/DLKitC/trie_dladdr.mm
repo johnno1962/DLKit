@@ -6,7 +6,7 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#8 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#9 $
 //
 //  dladdr() able to resolve symbols from "exports trie".
 //
@@ -45,7 +45,7 @@ public:
             symbols.push_back(entry);
         });
         free(buffer);
-        
+
         /// Fold in any other legacy symbols found
         for (int sno=0; sno < state.symbol_count; sno++) {
             TrieSymbol entry;
@@ -61,7 +61,7 @@ public:
 
         state.trie_symbols = symbols.data();
         state.trie_symbol_count = symbols.size();
-        
+
         #if VERIFY_DLADDR
         int i=0;
         for (auto &s : symbols) {
@@ -105,13 +105,13 @@ static const ImageSymbols *trie_symbols(const void *ptr) {
         }
         sort(image_store.begin(), image_store.end());
     }
-    
+
     /// Find relevant image
     ImageSymbols finder(nullptr, (mach_header_t *)ptr);
     intptr_t imageno = equalOrGreater(image_store, finder);
     if (imageno<0)
         return nullptr;
-    
+
     ImageSymbols &store = image_store[imageno];
     if (!store.state.header)
         init_symbol_iterator((mach_header_t *)store.header, &store.state, store.isFile);
@@ -169,7 +169,6 @@ NSArray/* <NSString *>*/ *trie_stackSymbols() {
             [out addObject:[NSString stringWithUTF8String:info.dli_sname]];
         else
             [out addObject:[NSString stringWithFormat:@"%p", pointer]];
-        
     }
     return out;
 }

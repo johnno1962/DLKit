@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#16 $
+//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#17 $
 //
 //  Provides state for a symbol table iterator.
 //
@@ -39,12 +39,12 @@ typedef struct {
     const mach_header_t *header;
     const void *image_end;
     intptr_t file_slide;
-    
+
     nlist_t *symbols;
     uint32_t symbol_count;
     intptr_t address_base;
     const char *strings_base;
-    
+
     const uint8_t *exports_trie;
     uint32_t trie_size;
     TrieSymbol *trie_symbols;

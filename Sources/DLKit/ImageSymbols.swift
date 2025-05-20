@@ -4,9 +4,9 @@
 //
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //  Created by John Holdsworth on 14/10/2023.
-//  
+//
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#9 $
+//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#10 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -104,16 +104,22 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
             return suffixes.first(where: { symbol.hasSuffix($0) }) != nil
         }
     }
+
     /// Linear scan for symbols with prefix
     open func entries(withPrefix: DLKit.SymbolName) -> [Entry] {
         let prefixLen = strlen(withPrefix)
         return entries.filter({ strncmp($0.name, withPrefix, prefixLen) == 0 })
     }
+    /// Linear scan for symbols with suffix
+    open func entries(withSuffix: DLKit.SymbolName) -> [Entry] {
+        let suffixLen = strlen(withSuffix)
+        return entries.filter({ strcmp($0.name+strlen($0.name)-suffixLen, withSuffix) == 0 })
+    }
     /// Linear scan for symbol by name
     open func entry(named: DLKit.SymbolName) -> Entry? {
         return entries.first(where: { strcmp($0.name, named) == 0 })
     }
-    
+
     open func trieSymbols() -> [TrieSymbol]? {
         guard let iterator = trie_iterator(imageHeader),
               let trie_symbols = iterator.pointee.trie_symbols else { return nil }

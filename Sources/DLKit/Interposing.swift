@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#18 $
+//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#19 $
 //
 
 #if DEBUG || !DEBUG_ONLY

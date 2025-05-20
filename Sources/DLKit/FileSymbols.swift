@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/FileSymbols.swift#7 $
+//  $Id: //depot/DLKit/Sources/DLKit/FileSymbols.swift#8 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -29,7 +29,7 @@ open class FileSymbols: ImageSymbols {
     override open var imageList: [ImageSymbols] {
         return [self]
     }
-    
+
     static func parseFAT(bytes: UnsafeRawPointer, forArch: Int32?)
                         -> UnsafePointer<mach_header_t>? {
         let header = bytes.assumingMemoryBound(to: fat_header.self)
