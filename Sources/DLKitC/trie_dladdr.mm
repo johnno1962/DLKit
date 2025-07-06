@@ -35,7 +35,7 @@ public:
     void trie_populate() {
         /// not initialised, add symbols found in "exports trie"
         char *buffer = (char *)malloc(state.trie_size+1);
-        __block std::map<const void *,const char *> exists;
+        __block std::unordered_map<const void *,const char *> exists;
         exportsTrieTraverse(&state, state.exports_trie, buffer, buffer,
                             ^(const void *value, const char *name) {
             if (exists[value])

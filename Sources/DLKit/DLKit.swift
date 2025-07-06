@@ -118,9 +118,11 @@ public struct DLKit {
 }
 
 @_cdecl("DLKit_appImagesContain")
-public func appImagesContain(symbol: UnsafePointer<CChar>) -> UnsafeMutableRawPointer? {
+public func appImagesContain(symbol: UnsafePointer<CChar>) -> UnsafeRawPointer? {
     return DLKit.appImages.imageList.compactMap {
-        trie_dlsym($0.imageHeader, symbol) }.first
+        var iter = ImageSymbols.SymbolIterator(image: $0)
+        return exportsLookup(&iter.state, symbol) }.first
+//        trie_dlsym($0.imageHeader, symbol) }.first
 //    return DLKit.appImages.imageList.compactMap {
 //        $0.entry(named: symbol) }.first?.value
 }
