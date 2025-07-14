@@ -65,7 +65,11 @@ public struct DLKit {
             logger("⚠️ dlopen failed \(String(cString: dlerror()))")
             return nil
         }
-        let image = ImageSymbols(imageNumber: index)
+        var image = ImageSymbols(imageNumber: index)
+        if index == imageCount, let found = // Already loaded
+            (0..<imageCount).first(where: { $0.imagePath == dylib }) {
+            image = ImageSymbols(imageNumber: found)
+        }
         image.imageHandle = handle
         return image
     }
