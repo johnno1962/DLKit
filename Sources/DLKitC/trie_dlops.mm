@@ -6,7 +6,7 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dlops.mm#9 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dlops.mm#10 $
 //
 //  Lookup/traversal of symbols in "exports trie" for trie_dladdr().
 //
@@ -68,12 +68,12 @@ static uint64_t read_uleb128(const uint8_t*& p, const uint8_t* end, bool& malfor
 }
 
 // Lookup a symbol using the "exports trie" (requires the initial "_").
-const void *exportsLookup(const symbol_iterator *state, const char *symbol) {
+void *exportsLookup(const symbol_iterator *state, const char *symbol) {
     return exportsTrieTraverse(state, state->exports_trie, symbol, nullptr, (triecb)0);
 }
 
 // Dynamic linker lookup code adapted to perform a complete traversal of the "trie".
-const void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
+void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
                                 const char *symbol, char *bptr, triecb callback) {
     const uint8_t *start = state->exports_trie;
     const uint8_t *end = start + state->trie_size;

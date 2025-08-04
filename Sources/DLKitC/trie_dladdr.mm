@@ -6,7 +6,7 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#9 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#11 $
 //
 //  dladdr() able to resolve symbols from "exports trie".
 //
@@ -154,7 +154,7 @@ int trie_dladdr(const void *ptr, Dl_info *info) {
 
 void *trie_dlsym(const mach_header_t *image, const char *symbol) {
     if (const ImageSymbols *store = trie_symbols(image))
-        return (void *)exportsLookup(&store->state, symbol);
+        return exportsLookup(&store->state, symbol);
     return nullptr;
 }
 

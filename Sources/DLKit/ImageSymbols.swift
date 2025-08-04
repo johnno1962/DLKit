@@ -6,7 +6,7 @@
 //  Created by John Holdsworth on 14/10/2023.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#10 $
+//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#11 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -30,6 +30,7 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
 
     /// Index into loaded images
     public let imageNumber: ImageNumber
+    public var imageSymbols: ImageSymbols { self }
     /// Skip if any of these bits set in "n_type"
     let typeMask: UInt8
 

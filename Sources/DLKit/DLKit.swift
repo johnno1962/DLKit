@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#77 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#82 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -121,18 +121,21 @@ public struct DLKit {
     }
 }
 
+/// Last loaded definition of symbol prefixed by "_"
 @_cdecl("DLKit_appImagesContain")
-public func appImagesContain(symbol: UnsafePointer<CChar>) -> UnsafeRawPointer? {
-    return DLKit.appImages.imageList.compactMap {
-        var iter = ImageSymbols.SymbolIterator(image: $0)
-        return exportsLookup(&iter.state, symbol) }.first
-//        trie_dlsym($0.imageHeader, symbol) }.first
-//    return DLKit.appImages.imageList.compactMap {
-//        $0.entry(named: symbol) }.first?.value
+public func DLKit_appImagesContain(symbol: UnsafePointer<CChar>)
+    -> UnsafeMutableRawPointer? {
+    for image in DLKit.appImages.imageNumbers.reversed() {
+        if let impl = image.imageExports(symbol: symbol) {
+            return impl
+        }
+    }
+    return nil
 }
 
 public protocol ImageInfo {
     var imageNumber: DLKit.ImageNumber { get }
+    var imageSymbols: ImageSymbols { get }
 }
 
 extension DLKit.ImageNumber: ImageInfo {
@@ -140,6 +143,8 @@ extension DLKit.ImageNumber: ImageInfo {
 }
 
 public extension ImageInfo {
+    /// Symbol table instance
+    var imageSymbols: ImageSymbols { ImageSymbols(imageNumber: imageNumber) }
     /// Base address of image (pointer to mach_header at beginning of file)
     var imageHeader: UnsafePointer<mach_header_t> {
         guard imageNumber < DLKit.imageCount else {
@@ -153,7 +158,7 @@ public extension ImageInfo {
         return _dyld_get_image_vmaddr_slide(imageNumber)
     }
     /// Path to image as cString
-    var imageName: UnsafePointer<Int8> {
+    var imageName: UnsafePointer<CChar> {
         return _dyld_get_image_name(imageNumber)
     }
     /// Path to image
@@ -163,6 +168,11 @@ public extension ImageInfo {
     /// Short name for image
     var imageKey: String {
         return URL(fileURLWithPath: imagePath).lastPathComponent
+    }
+    /// Fast trie lookup
+    func imageExports(symbol: UnsafePointer<CChar>) -> UnsafeMutableRawPointer? {
+        var iter = ImageSymbols.SymbolIterator(image: imageSymbols)
+        return exportsLookup(&iter.state, symbol)
     }
 }
 #endif
