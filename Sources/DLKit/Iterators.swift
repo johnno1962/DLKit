@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#26 $
+//  $Id: //depot/DLKit/Sources/DLKit/Iterators.swift#28 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -18,7 +18,7 @@ extension ImageSymbols: Sequence {
     public struct Entry: ImageInfo, CustomStringConvertible {
         public let imageNumber: ImageNumber,
                    name: DLKit.SymbolName,
-                   value: SymbolValue?,
+                   value: DLKit.SymbolValue?,
                    entry: UnsafeMutablePointer<nlist_t>
 
         public var isDebugging: Bool {
@@ -30,7 +30,7 @@ extension ImageSymbols: Sequence {
                           entry.pointee.n_type, name)+imageKey
         }
         public var symbol: String { return String(cString: name) }
-        public var offset: UInt64 { return entry.pointee.n_value }
+        public var offset: UInt64 { return UInt64(entry.pointee.n_value) }
     }
 
     public struct SymbolIterator: IteratorProtocol {

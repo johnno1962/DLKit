@@ -6,17 +6,15 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#18 $
+//  $Id: //depot/DLKit/Sources/DLKitC/include/DLKitC.h#22 $
 //
 //  Provides state for a symbol table iterator.
 //
 
 #if __has_include(<mach-o/dyld.h>)
-#import <dlfcn.h>
-#import <mach-o/dyld.h>
-#import <mach-o/arch.h>
-#import <mach-o/getsect.h>
 #import <mach-o/nlist.h>
+#import <mach-o/dyld.h>
+#import <dlfcn.h>
 
 #ifdef __LP64__
 typedef struct mach_header_64 mach_header_t;
@@ -32,8 +30,8 @@ typedef uint32_t sectsize_t;
 #define getsectdatafromheader_f getsectdatafromheader
 #endif
 
-typedef struct { const void *value; const char *name; } TrieSymbol;
-typedef void (^triecb)(const void *value, const char *name);
+typedef struct { void *value; const char *name; int symno; } TrieSymbol;
+typedef void (^triecb)(void *value, const char *name);
 
 typedef struct {
     const mach_header_t *header;
@@ -66,14 +64,14 @@ extern void init_symbol_iterator(const mach_header_t *header,
 @class NSArray, NSString;
 extern NSArray/* <NSString *>*/ *trie_stackSymbols();
 #endif
-extern int trie_dladdr(const void *value, Dl_info *info);
-extern void *trie_dlsym(const mach_header_t *image, const char *symbol);
-extern const symbol_iterator *trie_iterator(const void *header);
-extern void trie_register(const char *path, const mach_header_t *header);
-extern void *exportsLookup(const symbol_iterator *state, const char *symbol);
-extern void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
-                                 const char *buffer, char *bptr, triecb cb);
-extern void *DLKit_appImagesContain(const char *symbol);
+const symbol_iterator *trie_iterator(const void *header);
+void trie_register(const char *path, const mach_header_t *header);
+int trie_dladdr(const void *value, Dl_info *info, nlist_t **sym);
+void *trie_dlsym(const mach_header_t *image, const char *symbol, nlist_t **sym);
+void *exportsLookup(const symbol_iterator *state, const char *symbol);
+void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
+                          const char *prefix, char *bptr, triecb cb);
+void *DLKit_appImagesContain(const char *symbol);
 #endif
 #if __cplusplus
 }

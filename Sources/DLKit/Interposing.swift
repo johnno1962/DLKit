@@ -6,12 +6,11 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#19 $
+//  $Id: //depot/DLKit/Sources/DLKit/Interposing.swift#22 $
 //
 
 #if DEBUG || !DEBUG_ONLY
-#if canImport(Darwin)
-#if SWIFT_PACKAGE
+#if canImport(Darwin) && SWIFT_PACKAGE
 #if DEBUG_ONLY
 #if canImport(fishhookD)
 import fishhookD
@@ -28,6 +27,7 @@ internal extension UnsafeMutablePointer {
 }
 
 extension ImageSymbols {
+    public typealias SymbolValue = DLKit.SymbolValue
     public func rebind(mapping: [String: String],
                        scope: UnsafeMutableRawPointer? = DLKit.RTLD_DEFAULT,
                        warn: Bool = true) -> [DLKit.SymbolName] {
@@ -99,6 +99,7 @@ extension ImageSymbols {
         public let info: Dl_info
         public var name: DLKit.SymbolName! { info.dli_sname }
         public var addr: SymbolValue { info.dli_saddr }
+        public var entry: UnsafeMutablePointer<nlist_t>?
         public var owner: ImageSymbols
         public var image: ImageSymbols? {
             return (owner.imageNumbers.first(where: {
@@ -110,10 +111,10 @@ extension ImageSymbols {
     }
     /// Address lookup returning image symbol name and wrapped image for an address.
     public func getInfo(address: SymbolValue) -> DLKInfo? {
-        var info = Dl_info()
-        guard dladdr(address, &info) != 0 ||
-         trie_dladdr(address, &info) != 0 else { return nil }
-        return DLKInfo(info: info, owner: self)
+        var info = Dl_info(), entry: UnsafeMutablePointer<nlist_t>?
+        guard trie_dladdr(address, &info, &entry) != 0 ||
+                dladdr(address, &info) != 0 else { return nil }
+        return DLKInfo(info: info, entry: entry, owner: self)
     }
     /// Inverse lookup returning image symbol name and wrapped image for an address.
     public subscript (ptr: SymbolValue) -> DLKInfo? {
@@ -130,7 +131,8 @@ extension ImageSymbols {
             if imageHandle == nil {
                 imageHandle = dlopen(imageName, RTLD_LAZY)
             }
-            return names.map {dlsym(imageHandle, $0)}
+            return names.map {dlsym(imageHandle, $0) ??
+                         trie_dlsym(imageHeader, $0, nil)}
         }
         set (newValue) {
             /// Use fishhook to replace references to the named symbol with new values
@@ -154,5 +156,4 @@ extension ImageSymbols {
         }
     }
 }
-#endif
 #endif

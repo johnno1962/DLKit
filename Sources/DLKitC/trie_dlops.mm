@@ -6,7 +6,7 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dlops.mm#10 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dlops.mm#11 $
 //
 //  Lookup/traversal of symbols in "exports trie" for trie_dladdr().
 //
@@ -18,7 +18,7 @@
 #import "DLKitC.h"
 #import <vector>
 
-// Derived from https://github.com/apple-oss-distributions/dyld/blob/main/common/MachOFile.cpp#L2768
+// Derived from https://github.com/apple-oss-distributions/dyld/blob/93bd81f9d7fcf004fcebcb66ec78983882b41e71/common/MachOFile.cpp#L2001C16-L2001C35
 
 /*
  * Copyright (c) 2017 Apple Inc. All rights reserved.
@@ -73,8 +73,9 @@ void *exportsLookup(const symbol_iterator *state, const char *symbol) {
 }
 
 // Dynamic linker lookup code adapted to perform a complete traversal of the "trie".
+// Based on trieWalk in apple-oss-distributions/dyld/common/MachOFile.cpp
 void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
-                                const char *symbol, char *bptr, triecb callback) {
+                          const char *symbol, char *bptr, triecb callback) {
     const uint8_t *start = state->exports_trie;
     const uint8_t *end = start + state->trie_size;
     if (!start)
@@ -90,7 +91,7 @@ void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
             if ( malformed )
                 return nullptr;
         }
-        if ( (callback || *symbol == '\0') && (terminalSize != 0) ) {
+        if ( (*symbol == '\0') && (terminalSize != 0) ) {
             const uint8_t *ptmp = p;
             (void)read_uleb128(ptmp, end, malformed);
             void *value = (char *)state->header + read_uleb128(ptmp, end, malformed);
@@ -118,7 +119,7 @@ void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
             while ( c != '\0' ) {
                 if (callback)
                     *bptr++ = c;
-                else if ( !wrongEdge ) {
+                if ( !wrongEdge && *ss ) {
                     if ( c != *ss )
                         wrongEdge = true;
                     ++ss;
@@ -153,7 +154,8 @@ void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
                     symbol = ss;
                     break;
                 }
-                exportsTrieTraverse(state, &state->exports_trie[nodeOffset], symbol, bptr, callback);
+                exportsTrieTraverse(state, &state->exports_trie[nodeOffset],
+                                    ss, bptr, callback);
                 nodeOffset = 0;
             }
         }

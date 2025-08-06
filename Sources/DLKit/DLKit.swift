@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#82 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#83 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -28,12 +28,16 @@ public struct DLKit {
     public typealias ImageNumber = UInt32
     /// Alias for symbol name type
     public typealias SymbolName = UnsafePointer<CChar>
+    /// Index into loaded images
+    public typealias SymbolValue = UnsafeMutableRawPointer
     /// Pseudo image for all images loaded in the process.
     public static let allImages = AllImages()
     /// Pseudo image for images loaded from the app bundle.
     public static let appImages = AppImages()
     /// Main execuatble image.
     public static let mainImage = MainImage()
+    /// Xcode 16+ .debug.dylib image.
+    public static let debugImage = appImages.imageNumbers[1].imageSymbols
     /// Total number of images.
     public static var imageCount: ImageNumber {
         return _dyld_image_count()
@@ -123,8 +127,8 @@ public struct DLKit {
 
 /// Last loaded definition of symbol prefixed by "_"
 @_cdecl("DLKit_appImagesContain")
-public func DLKit_appImagesContain(symbol: UnsafePointer<CChar>)
-    -> UnsafeMutableRawPointer? {
+public func DLKit_appImagesContain(symbol: DLKit.SymbolName)
+    -> DLKit.SymbolValue? {
     for image in DLKit.appImages.imageNumbers.reversed() {
         if let impl = image.imageExports(symbol: symbol) {
             return impl
@@ -169,8 +173,8 @@ public extension ImageInfo {
     var imageKey: String {
         return URL(fileURLWithPath: imagePath).lastPathComponent
     }
-    /// Fast trie lookup
-    func imageExports(symbol: UnsafePointer<CChar>) -> UnsafeMutableRawPointer? {
+    /// Fast trie lookup (requires initial "_")
+    func imageExports(symbol: DLKit.SymbolName) -> DLKit.SymbolValue? {
         var iter = ImageSymbols.SymbolIterator(image: imageSymbols)
         return exportsLookup(&iter.state, symbol)
     }

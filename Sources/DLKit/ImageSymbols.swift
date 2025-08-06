@@ -6,7 +6,7 @@
 //  Created by John Holdsworth on 14/10/2023.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#11 $
+//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#14 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -17,8 +17,6 @@ import Foundation
 open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     /// For compatability
     public typealias ImageNumber = DLKit.ImageNumber
-    /// Index into loaded images
-    public typealias SymbolValue = UnsafeMutableRawPointer
     /// Symbols included if these bits not set
     public static var mask: Int32 = N_STAB
     public static func == (lhs: ImageSymbols, rhs: ImageSymbols) -> Bool {
@@ -115,6 +113,19 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     open func entries(withSuffix: DLKit.SymbolName) -> [Entry] {
         let suffixLen = strlen(withSuffix)
         return entries.filter({ strcmp($0.name+strlen($0.name)-suffixLen, withSuffix) == 0 })
+    }
+    /// Trie based extract of symbols with prefix
+    open func exports(withPrefix: DLKit.SymbolName,
+        callback: @escaping (TrieSymbol) -> Void) {
+        guard let iter = trie_iterator(imageHeader) else { return }
+        var buffer = [CChar](repeating: 0, count: Int(iter.pointee.trie_size))
+        buffer.withUnsafeMutableBufferPointer {
+            let buff = $0.baseAddress
+            exportsTrieTraverse(iter, iter.pointee.exports_trie,
+                                withPrefix, buff) { _ = $1
+                callback(TrieSymbol(value: $0, name: buff, symno: -1))
+            }
+        }
     }
     /// Linear scan for symbol by name
     open func entry(named: DLKit.SymbolName) -> Entry? {
