@@ -101,14 +101,14 @@ public:
             int i=0;
             auto &symbols = symbolsByValue;
             for (auto &s : symbols) {
-                void *v = trie_dlsym((mach_header_t *)header, s.name, nullptr);
+                void *v = trie_dlsym((mach_header_t *)header, s.name);
                 if (s.value != v)
                     printf("%ld %d %p %p %s ??%s\n", symbols.size(), i++, s.value, v, strrchr(path, '/'), s.name);
                 void *v2 = dlsym(RTLD_DEFAULT, s.name+1);
                 if (s.value != v2 && v2)
                     printf("%ld %d %p %p %s\n", symbols.size(), i++, s.value, v2, strrchr(path, '/'));
                 Dl_info info;
-                trie_dladdr(v, &info, nullptr);
+                trie_dladdr(v, &info);
                 if (strcmp(info.dli_sname, s.name+(*s.name == '_')))
                     printf("%s %s %ld %d %p %p %s\n", info.dli_sname, s.name, symbols.size(), i++, s.value, v, strrchr(path, '/'));
             }
@@ -190,7 +190,11 @@ const symbol_iterator *trie_iterator(const void *header) {
     return nullptr;
 }
 
-int trie_dladdr(const void *ptr, Dl_info *info, nlist_t **sym) {
+int trie_dladdr(const void *value, Dl_info *info) {
+    return trie_dladdr2(value, info, nullptr);
+}
+
+int trie_dladdr2(const void *ptr, Dl_info *info, nlist_t **sym) {
     SymbolStore *store = trie_symbols(ptr);
     info->dli_fname = "Image not found";
     info->dli_fbase = nullptr;
@@ -217,7 +221,12 @@ int trie_dladdr(const void *ptr, Dl_info *info, nlist_t **sym) {
     return 1;
 }
 
-void *trie_dlsym(const mach_header_t *image, const char *symbol, nlist_t **sym) {
+void *trie_dlsym(const mach_header_t *image, const char *symbol) {
+    return trie_dlsym2(image, symbol, nullptr);
+}
+
+void *trie_dlsym2(const mach_header_t *image, const char *symbol, nlist_t **sym)
+{
     if (SymbolStore *store = trie_symbols(image)) {
         nlist_t *symbols = store->state.symbols;
         if (void *found = exportsLookup(&store->state, symbol)) {
@@ -258,7 +267,7 @@ NSArray/* <NSString *>*/ *trie_stackSymbols() {
     Dl_info info;
     for (NSValue *caller in [NSThread callStackReturnAddresses]) {
         void *pointer = caller.pointerValue;
-        if (trie_dladdr(pointer, &info, nullptr))
+        if (trie_dladdr(pointer, &info))
             [out addObject:[NSString stringWithUTF8String:info.dli_sname]];
         else
             [out addObject:[NSString stringWithFormat:@"%p", pointer]];

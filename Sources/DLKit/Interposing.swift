@@ -112,7 +112,7 @@ extension ImageSymbols {
     /// Address lookup returning image symbol name and wrapped image for an address.
     public func getInfo(address: SymbolValue) -> DLKInfo? {
         var info = Dl_info(), entry: UnsafeMutablePointer<nlist_t>?
-        guard trie_dladdr(address, &info, &entry) != 0 ||
+        guard trie_dladdr2(address, &info, &entry) != 0 ||
                 dladdr(address, &info) != 0 else { return nil }
         return DLKInfo(info: info, entry: entry, owner: self)
     }
@@ -132,7 +132,7 @@ extension ImageSymbols {
                 imageHandle = dlopen(imageName, RTLD_LAZY)
             }
             return names.map {dlsym(imageHandle, $0) ??
-                         trie_dlsym(imageHeader, $0, nil)}
+                         trie_dlsym(imageHeader, $0)}
         }
         set (newValue) {
             /// Use fishhook to replace references to the named symbol with new values

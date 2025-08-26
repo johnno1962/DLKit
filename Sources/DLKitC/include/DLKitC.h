@@ -66,8 +66,10 @@ extern NSArray/* <NSString *>*/ *trie_stackSymbols();
 #endif
 const symbol_iterator *trie_iterator(const void *header);
 void trie_register(const char *path, const mach_header_t *header);
-int trie_dladdr(const void *value, Dl_info *info, nlist_t **sym);
-void *trie_dlsym(const mach_header_t *image, const char *symbol, nlist_t **sym);
+int trie_dladdr(const void *value, Dl_info *info);
+int trie_dladdr2(const void *value, Dl_info *info, nlist_t **sym);
+void *trie_dlsym(const mach_header_t *image, const char *symbol);
+void *trie_dlsym2(const mach_header_t *image, const char *symbol, nlist_t **sym);
 void *exportsLookup(const symbol_iterator *state, const char *symbol);
 void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
                           const char *prefix, char *bptr, triecb cb);
