@@ -6,7 +6,7 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#18 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#20 $
 //
 //  dladdr() able to resolve symbols from "exports trie".
 //
@@ -65,15 +65,6 @@ public:
         state.trie_symbol_count = symbolsByValue.size();
         legacy_populate();
         return symbolsByValue;
-    }
-    
-    TrieSymbol *triesymWithValue(void *value, bool exact) {
-        TrieSymbol entry = {value};
-        ptrdiff_t already = equalOrGreater(symbolsByValue, entry);
-        if (already<0 || already>=symbolsByValue.size() ||
-            (exact && symbolsByValue[already].value != value))
-            return nullptr;
-        return &symbolsByValue[already];
     }
 
     std::vector<TrieSymbol> &legacy_populate() {
@@ -146,6 +137,16 @@ public:
 //            printf(">> %s\n", strings+symbols[names[i]].n_un.n_strx);
         return symbolNumbersByName;
     }
+    
+    TrieSymbol *triesymWithValue(void *value, bool exact) {
+        TrieSymbol entry = {value};
+        auto &symbols = trie_populate();
+        ptrdiff_t already = equalOrGreater(symbols, entry);
+        if (already<0 || already>=symbols.size() ||
+            (exact && symbols[already].value != value))
+            return nullptr;
+        return &symbols[already];
+    }
 };
 
 static bool operator < (const SymbolStore &s1, const SymbolStore &s2) {
@@ -192,16 +193,16 @@ const symbol_iterator *trie_iterator(const void *header) {
 int trie_dladdr(const void *ptr, Dl_info *info, nlist_t **sym) {
     SymbolStore *store = trie_symbols(ptr);
     info->dli_fname = "Image not found";
+    info->dli_fbase = nullptr;
     info->dli_sname = "Symbol not found";
+    info->dli_saddr = nullptr;
     if (!store)
         return 0;
 
     info->dli_fbase = const_cast<void *>(store->header);
     info->dli_fname = store->path;
 
-    const auto &symbols = store->trie_populate();
-
-    /// Find actual symbol
+    /// Find first symbol <= ptr
     TrieSymbol *found = store->triesymWithValue(const_cast<void *>(ptr), false);
     if (!found)
         return 0;
