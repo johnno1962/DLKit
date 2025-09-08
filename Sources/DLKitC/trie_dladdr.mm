@@ -155,10 +155,12 @@ static bool operator < (const SymbolStore &s1, const SymbolStore &s2) {
 }
 
 static std::vector<SymbolStore> image_store;
+static unsigned fileSymbols;
 
 void trie_register(const char *path, const mach_header_t *header) {
     image_store.push_back(SymbolStore(strdup(path), header, true));
     sort(image_store.begin(), image_store.end());
+    fileSymbols++;
 }
 
 static SymbolStore *trie_symbols(const void *ptr) {
@@ -166,8 +168,9 @@ static SymbolStore *trie_symbols(const void *ptr) {
     os_unfair_lock_lock(&store_lock);
 
     /// Maintain data for all loaded images
-    if (image_store.size() < _dyld_image_count()) {
-        for (uint32_t i=(uint32_t)image_store.size(); i<_dyld_image_count(); i++) {
+    unsigned alreadyStored = (int)image_store.size()-fileSymbols;
+    if (alreadyStored < _dyld_image_count()) {
+        for (unsigned i=alreadyStored; i<_dyld_image_count(); i++) {
             image_store.push_back(SymbolStore(_dyld_get_image_name(i),
                              (mach_header_t *)_dyld_get_image_header(i)));
         }
@@ -177,6 +180,7 @@ static SymbolStore *trie_symbols(const void *ptr) {
     /// Find relevant image
     SymbolStore finder(nullptr, (mach_header_t *)ptr);
     intptr_t imageno = equalOrGreater(image_store, finder);
+
     os_unfair_lock_unlock(&store_lock);
     if (imageno<0)
         return nullptr;
@@ -226,6 +230,32 @@ int trie_dladdr2(const void *ptr, Dl_info *info, nlist_t **sym) {
     return 1;
 }
 
+static void *legacy_dlsym(SymbolStore *store, const char *symbol, nlist_t **sym)
+{   const auto &names = store->names_populate();
+    const char *strings = store->state.strings_base;
+    nlist_t *symbols = store->state.symbols;
+    for (int i=1; i>=0; i--) {
+        int low = 0, high = (int)names.size()-1;
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+            nlist_t &legacy = symbols[names[mid]];
+            int cmp = strcmp(symbol+i, strings+legacy.n_un.n_strx+1);
+            if (cmp < 0)
+                high = mid - 1;
+            else if (cmp > 0)
+                low = mid + 1;
+            else {
+//                    printf("FOUND %d %s\n", mid, symbol);
+                if (sym)
+                    *sym = &legacy;
+                return (char *)store->state.address_base + legacy.n_value;
+            }
+        }
+    }
+    
+    return nullptr;
+}
+
 void *trie_dlsym(const mach_header_t *image, const char *symbol) {
     return trie_dlsym2(image, symbol, nullptr);
 }
@@ -233,35 +263,15 @@ void *trie_dlsym(const mach_header_t *image, const char *symbol) {
 void *trie_dlsym2(const mach_header_t *image, const char *symbol, nlist_t **sym)
 {
     if (SymbolStore *store = trie_symbols(image)) {
-        nlist_t *symbols = store->state.symbols;
         if (void *found = exportsLookup(&store->state, symbol)) {
             if (sym)
                 if (TrieSymbol *triesym = store->triesymWithValue(found, true))
                     if (triesym->symno >= 0)
-                        *sym = &symbols[triesym->symno];
+                        *sym = &store->state.symbols[triesym->symno];
             return found;
         }
 
-        const auto &names = store->names_populate();
-        const char *strings = store->state.strings_base;
-        for (int i=1; i>=0; i--) {
-            int low = 0, high = (int)names.size()-1;
-            while (low <= high) {
-                int mid = low + (high - low) / 2;
-                nlist_t &legacy = symbols[names[mid]];
-                int cmp = strcmp(symbol+i, strings+legacy.n_un.n_strx+1);
-                if (cmp < 0)
-                    high = mid - 1;
-                else if (cmp > 0)
-                    low = mid + 1;
-                else {
-//                    printf("FOUND %d %s\n", mid, symbol);
-                    if (sym)
-                        *sym = &legacy;
-                    return (char *)store->state.address_base + legacy.n_value;
-                }
-            }
-        }
+        return legacy_dlsym(store, symbol, sym);
     }
 
     return nullptr;

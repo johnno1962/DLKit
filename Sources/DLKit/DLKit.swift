@@ -175,8 +175,7 @@ public extension ImageInfo {
     }
     /// Fast trie lookup (requires initial "_")
     func imageExports(symbol: DLKit.SymbolName) -> DLKit.SymbolValue? {
-        var iter = ImageSymbols.SymbolIterator(image: imageSymbols)
-        return exportsLookup(&iter.state, symbol)
+        return exportsLookup(trie_iterator(imageHeader), symbol)
     }
 }
 #endif

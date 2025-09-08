@@ -77,8 +77,8 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     }
     /// Implement custom symbol filtering here...
     open func skipFiltered(iterator: inout SymbolIterator) {
-        while iterator.next_symbol < iterator.state.symbol_count && typeMask != 0,
-              let sym = iterator.state.symbols?.advanced(by: iterator.next_symbol),
+        while iterator.next_symbol < iterator.state.pointee.symbol_count && typeMask != 0,
+              let sym = iterator.state.pointee.symbols?.advanced(by: iterator.next_symbol),
               sym.pointee.n_type & typeMask != 0 || sym.pointee.n_sect == NO_SECT {
             iterator.next_symbol += 1
         }

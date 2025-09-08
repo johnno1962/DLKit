@@ -35,22 +35,26 @@ extension ImageSymbols: Sequence {
 
     public struct SymbolIterator: IteratorProtocol {
         let owner: ImageSymbols
-        var state = symbol_iterator()
+        var state: UnsafePointer<symbol_iterator>
         var next_symbol = 0;
         public init(image: ImageSymbols) {
             self.owner = image
-            init_symbol_iterator(image.imageHeader, &state, image is FileSymbols)
+            if let iter = trie_iterator(image.imageHeader) {
+                self.state = iter
+            } else {
+                fatalError("Missing iterator for \(image)")
+            }
         }
         mutating public func next() -> Element? {
             owner.skipFiltered(iterator: &self)
-            guard next_symbol < state.symbol_count else { return nil }
-            let symbol = state.symbols.advanced(by: next_symbol)
+            guard next_symbol < state.pointee.symbol_count else { return nil }
+            let symbol = state.pointee.symbols.advanced(by: next_symbol)
             next_symbol += 1
             return Entry(imageNumber: owner.imageNumber,
-                name: state.strings_base + 1 +
+                name: state.pointee.strings_base + 1 +
                     Int(symbol.pointee.n_un.n_strx),
                 value: symbol.pointee.n_sect == NO_SECT ? nil : SymbolValue(
-                    bitPattern: state.address_base + Int(symbol[0].n_value)),
+                    bitPattern: state.pointee.address_base + Int(symbol[0].n_value)),
                 entry: symbol)
         }
     }
