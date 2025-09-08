@@ -14,6 +14,7 @@
 #if DEBUG || !DEBUG_ONLY
 #if __has_include(<mach-o/dyld.h>)
 #import <Foundation/Foundation.h>
+#import <os/lock.h>
 #import "DLKitC.h"
 #include <vector>
 #include <string>
@@ -161,6 +162,9 @@ void trie_register(const char *path, const mach_header_t *header) {
 }
 
 static SymbolStore *trie_symbols(const void *ptr) {
+    static os_unfair_lock store_lock = OS_UNFAIR_LOCK_INIT;
+    os_unfair_lock_lock(&store_lock);
+
     /// Maintain data for all loaded images
     if (image_store.size() < _dyld_image_count()) {
         for (uint32_t i=(uint32_t)image_store.size(); i<_dyld_image_count(); i++) {
@@ -173,6 +177,7 @@ static SymbolStore *trie_symbols(const void *ptr) {
     /// Find relevant image
     SymbolStore finder(nullptr, (mach_header_t *)ptr);
     intptr_t imageno = equalOrGreater(image_store, finder);
+    os_unfair_lock_unlock(&store_lock);
     if (imageno<0)
         return nullptr;
 
