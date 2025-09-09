@@ -70,6 +70,7 @@ int trie_dladdr(const void *value, Dl_info *info);
 int trie_dladdr2(const void *value, Dl_info *info, nlist_t **sym);
 void *trie_dlsym(const mach_header_t *image, const char *symbol);
 void *trie_dlsym2(const mach_header_t *image, const char *symbol, nlist_t **sym);
+void *slow_dlsym2(const mach_header_t *image, const char *symbol, nlist_t **sym);
 void *exportsLookup(const symbol_iterator *state, const char *symbol);
 void *exportsTrieTraverse(const symbol_iterator *state, const uint8_t *p,
                           const char *prefix, char *bptr, triecb cb);

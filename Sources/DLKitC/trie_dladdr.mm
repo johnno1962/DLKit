@@ -85,7 +85,7 @@ public:
             }
             entry.symno = symno;
             entry.name = state.strings_base + legacy.n_un.n_strx;
-//            printf("adding %d %x %p %s\n", sno, legacy.n_type, entry.value, entry.name);
+//            printf("adding %d %x %p %s\n", symno, legacy.n_type, entry.value, entry.name);
             if (!entry.name[0] || defined[entry.name]++)
                 continue; // name already recorded
             legacySyms.push_back(entry);
@@ -154,21 +154,23 @@ static bool operator < (const SymbolStore &s1, const SymbolStore &s2) {
     return s1.header < s2.header;
 }
 
+static os_unfair_lock store_lock = OS_UNFAIR_LOCK_INIT;
 static std::vector<SymbolStore> image_store;
-static unsigned fileSymbols;
+static unsigned nFileSymbols;
 
 void trie_register(const char *path, const mach_header_t *header) {
+    os_unfair_lock_lock(&store_lock);
     image_store.push_back(SymbolStore(strdup(path), header, true));
     sort(image_store.begin(), image_store.end());
-    fileSymbols++;
+    nFileSymbols++;
+    os_unfair_lock_unlock(&store_lock);
 }
 
 static SymbolStore *trie_symbols(const void *ptr) {
-    static os_unfair_lock store_lock = OS_UNFAIR_LOCK_INIT;
     os_unfair_lock_lock(&store_lock);
 
     /// Maintain data for all loaded images
-    unsigned alreadyStored = (int)image_store.size()-fileSymbols;
+    unsigned alreadyStored = (int)image_store.size()-nFileSymbols;
     if (alreadyStored < _dyld_image_count()) {
         for (unsigned i=alreadyStored; i<_dyld_image_count(); i++) {
             image_store.push_back(SymbolStore(_dyld_get_image_name(i),
@@ -245,7 +247,7 @@ static void *legacy_dlsym(SymbolStore *store, const char *symbol, nlist_t **sym)
             else if (cmp > 0)
                 low = mid + 1;
             else {
-//                    printf("FOUND %d %s\n", mid, symbol);
+//                printf("FOUND %d %s\n", mid, symbol);
                 if (sym)
                     *sym = &legacy;
                 return (char *)store->state.address_base + legacy.n_value;
@@ -254,6 +256,11 @@ static void *legacy_dlsym(SymbolStore *store, const char *symbol, nlist_t **sym)
     }
     
     return nullptr;
+}
+
+void *slow_dlsym2(const mach_header_t *image, const char *symbol, nlist_t **sym)
+{
+    return legacy_dlsym(trie_symbols(image), symbol, sym);
 }
 
 void *trie_dlsym(const mach_header_t *image, const char *symbol) {
