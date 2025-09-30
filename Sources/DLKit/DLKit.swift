@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#83 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#84 $
 //
 
 #if DEBUG || !DEBUG_ONLY

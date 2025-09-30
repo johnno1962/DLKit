@@ -6,7 +6,7 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#20 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#21 $
 //
 //  dladdr() able to resolve symbols from "exports trie".
 //

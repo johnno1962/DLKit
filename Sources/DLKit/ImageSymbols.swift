@@ -6,7 +6,7 @@
 //  Created by John Holdsworth on 14/10/2023.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#14 $
+//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#15 $
 //
 
 #if DEBUG || !DEBUG_ONLY
