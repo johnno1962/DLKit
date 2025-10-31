@@ -6,7 +6,7 @@
 //  Copyright © 2024 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#21 $
+//  $Id: //depot/DLKit/Sources/DLKitC/trie_dladdr.mm#22 $
 //
 //  dladdr() able to resolve symbols from "exports trie".
 //
@@ -79,6 +79,7 @@ public:
             TrieSymbol entry;
             nlist_t &legacy = state.symbols[symno];
             entry.value = (char *)state.address_base + legacy.n_value;
+            if (!symbolsByValue.empty())
             if (TrieSymbol *already = triesymWithValue(entry.value, true)) {
                 already->symno = symno;
                 continue; // from exports trie
