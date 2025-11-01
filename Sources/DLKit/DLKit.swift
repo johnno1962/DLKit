@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#84 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#85 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -92,18 +92,15 @@ public struct DLKit {
     /// Pseudo image representing images in the app bundle
     open class AppImages: AllImages {
         open override var imageNumbers: [ImageNumber] {
-            let mainExecutable = Bundle.main.executablePath
-            let bundleFrameworks = Bundle.main.privateFrameworksPath ?? "~~"
-            let frameworkPathLength = strlen(bundleFrameworks)
+            let appBundle = Bundle.main.bundlePath
+            let bundlePathLength = strlen(appBundle)
             return super.imageNumbers.filter {
                 let imageName = $0.imageName
-                return strcmp(imageName, mainExecutable) == 0 ||
-                    strncmp(imageName, bundleFrameworks, frameworkPathLength) == 0 ||
+                return strncmp(imageName, appBundle, bundlePathLength) == 0 ||
                     (strstr(imageName, "/DerivedData/") != nil &&
                      strstr(imageName, ".framework/") != nil) ||
                     strstr(imageName, ".xctest/") != nil ||
-                    strstr(imageName, "/eval") != nil ||
-                    strstr(imageName, ".debug.dylib") != nil // Xcode16
+                    strstr(imageName, "/eval") != nil
             }
         }
     }

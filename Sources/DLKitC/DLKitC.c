@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKitC/DLKitC.c#19 $
+//  $Id: //depot/DLKit/Sources/DLKitC/DLKitC.c#20 $
 //
 //  Provides state for a symbol table iterator.
 //
@@ -90,7 +90,7 @@ void init_symbol_iterator(const mach_header_t *header,
             }
         }
     }
-        
+   
     if (fileOffset != ~0U)
         state->exports_trie = (uint8_t *)header + (uint32_t)(isFile ? fileOffset :
             (fileOffset - linkeditFileOffset) + (linkeditUnslidVMAddr - textUnslidVMAddr));
