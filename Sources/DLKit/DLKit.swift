@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#85 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#86 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -60,12 +60,17 @@ public struct DLKit {
     }
     public static let RTLD_DEFAULT = UnsafeMutableRawPointer(bitPattern: -2)
     public static let RTLD_MAIN_ONLY = UnsafeMutableRawPointer(bitPattern: -5)
+    /// Mode flags passed to `dlopen` by `DLKit.load(dylib:)`.
+    /// Default preserves historical behaviour (`RTLD_NOW`). Override
+    /// to change symbol binding/visibility of loaded images, e.g.
+    /// `DLKit.dlOpenMode = RTLD_LAZY | RTLD_GLOBAL`.
+    public static var dlOpenMode: Int32 = RTLD_NOW
     public static var logger = { (msg: String) in
         NSLog("DLKit: %@", msg)
     }
     public static func load(dylib: String) -> ImageSymbols? {
         let index = imageCount
-        guard let handle = dlopen(dylib, RTLD_NOW) else {
+        guard let handle = dlopen(dylib, dlOpenMode) else {
             logger("⚠️ dlopen failed \(String(cString: dlerror()))")
             return nil
         }
