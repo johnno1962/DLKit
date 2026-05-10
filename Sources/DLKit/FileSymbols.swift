@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/FileSymbols.swift#8 $
+//  $Id: //depot/DLKit/Sources/DLKit/FileSymbols.swift#9 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -16,8 +16,10 @@ import Foundation
 open class FileSymbols: ImageSymbols {
 
     /// Fake imageNumber for files
+    nonisolated(unsafe)
     public static var fileNumber: ImageNumber = 1_000_000
     /// Record of paths to images read in rather than loaded
+    nonisolated(unsafe)
     public static var filePaths = [ImageNumber: String]()
 
     public let data: NSMutableData

@@ -47,5 +47,6 @@ let package = Package(
         .testTarget(
             name: "DLKitTests",
             dependencies: ["DLKit"]),
-    ]
+    ],
+    swiftLanguageVersions: [.v5]
 )

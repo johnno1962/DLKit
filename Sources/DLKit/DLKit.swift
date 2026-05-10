@@ -6,7 +6,7 @@
 //  Copyright © 2020 John Holdsworth. All rights reserved.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#86 $
+//  $Id: //depot/DLKit/Sources/DLKit/DLKit.swift#87 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -31,12 +31,16 @@ public struct DLKit {
     /// Index into loaded images
     public typealias SymbolValue = UnsafeMutableRawPointer
     /// Pseudo image for all images loaded in the process.
+    nonisolated(unsafe)
     public static let allImages = AllImages()
     /// Pseudo image for images loaded from the app bundle.
+    nonisolated(unsafe)
     public static let appImages = AppImages()
     /// Main execuatble image.
+    nonisolated(unsafe)
     public static let mainImage = MainImage()
     /// Xcode 16+ .debug.dylib image.
+    nonisolated(unsafe)
     public static let debugImage = appImages.imageNumbers[1].imageSymbols
     /// Total number of images.
     public static var imageCount: ImageNumber {
@@ -58,13 +62,17 @@ public struct DLKit {
     public static var imageMap: [String: ImageSymbols] {
         return allImages.imageMap
     }
+    nonisolated(unsafe)
     public static let RTLD_DEFAULT = UnsafeMutableRawPointer(bitPattern: -2)
+    nonisolated(unsafe)
     public static let RTLD_MAIN_ONLY = UnsafeMutableRawPointer(bitPattern: -5)
     /// Mode flags passed to `dlopen` by `DLKit.load(dylib:)`.
     /// Default preserves historical behaviour (`RTLD_NOW`). Override
     /// to change symbol binding/visibility of loaded images, e.g.
     /// `DLKit.dlOpenMode = RTLD_LAZY | RTLD_GLOBAL`.
+    nonisolated(unsafe)
     public static var dlOpenMode: Int32 = RTLD_NOW
+    nonisolated(unsafe)
     public static var logger = { (msg: String) in
         NSLog("DLKit: %@", msg)
     }

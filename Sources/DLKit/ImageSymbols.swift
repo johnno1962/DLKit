@@ -6,7 +6,7 @@
 //  Created by John Holdsworth on 14/10/2023.
 //
 //  Repo: https://github.com/johnno1962/DLKit
-//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#15 $
+//  $Id: //depot/DLKit/Sources/DLKit/ImageSymbols.swift#16 $
 //
 
 #if DEBUG || !DEBUG_ONLY
@@ -18,6 +18,7 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     /// For compatability
     public typealias ImageNumber = DLKit.ImageNumber
     /// Symbols included if these bits not set
+    nonisolated(unsafe)
     public static var mask: Int32 = N_STAB
     public static func == (lhs: ImageSymbols, rhs: ImageSymbols) -> Bool {
         return lhs.imageNumber == rhs.imageNumber
@@ -145,7 +146,7 @@ open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     }
 }
 
-extension TrieSymbol: CustomStringConvertible {
+extension TrieSymbol: @retroactive CustomStringConvertible {
     public var description: String {
         return "\(value != nil ? "\(value!)" : "nil"): " +
             (name.demangled ?? String(cString: name))
