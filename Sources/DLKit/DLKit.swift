@@ -23,6 +23,7 @@ import Foundation
 #endif
 
 /// Interface to symbols of dynamically loaded images (executable or frameworks).
+nonisolated(unsafe)
 public struct DLKit {
     /// Offset into table of loaded images
     public typealias ImageNumber = UInt32

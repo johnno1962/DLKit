@@ -14,6 +14,7 @@
 import Foundation
 
 /// Abstraction for an image as operations on it's symbol table
+nonisolated(unsafe)
 open class ImageSymbols: ImageInfo, Equatable, CustomStringConvertible {
     /// For compatability
     public typealias ImageNumber = DLKit.ImageNumber

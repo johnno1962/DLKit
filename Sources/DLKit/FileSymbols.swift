@@ -13,6 +13,7 @@
 #if canImport(Darwin)
 import Foundation
 
+nonisolated(unsafe)
 open class FileSymbols: ImageSymbols {
 
     /// Fake imageNumber for files
